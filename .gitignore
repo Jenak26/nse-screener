@@ -10,3 +10,4 @@ dist/
 build/
 .pytest_cache/
 data/nifty500.csv
+.claude/settings.local.json
