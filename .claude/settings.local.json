@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(superpowers:brainstorming)",
+      "Bash(Remove-Item *)",
+      "PowerShell(Remove-Item *)",
+      "PowerShell(New-Item *)",
+      "Skill(superpowers:writing-plans)",
+      "Skill(superpowers:subagent-driven-development)"
+    ]
+  }
+}

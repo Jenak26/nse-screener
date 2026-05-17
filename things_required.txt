@@ -1,0 +1,111 @@
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TRADAD — THINGS TO COLLECT BEFORE BUILDING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ = Done   ⬜ = Pending
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. ANGEL ONE SMARTAPI
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⬜  Open Angel One demat account (free)
+     → https://www.angelone.in/open-demat-account
+
+⬜  Register for SmartAPI access
+     → https://smartapi.angelbroking.com/
+
+⬜  Create an app on SmartAPI dashboard
+     → Get your API Key
+
+⬜  Note down the following credentials:
+     API Key      : ____________________________
+     Client ID    : ____________________________
+     Password     : ____________________________
+     TOTP Secret  : ____________________________ (for 2FA automation)
+
+NOTE: Enable TOTP (Google Authenticator) on your account.
+      The TOTP secret is needed for automated login in the scanner.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2. TELEGRAM BOT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⬜  Create a Telegram bot via @BotFather
+     → Get your Bot Token
+
+⬜  Get your personal Telegram Chat ID
+     → Message @userinfobot on Telegram to get your Chat ID
+
+⬜  Note down:
+     Bot Token  : ____________________________
+     Chat ID    : ____________________________
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+3. PYTHON ENVIRONMENT (Windows)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⬜  Install Python 3.12 (or 3.11)
+     → https://www.python.org/downloads/
+     → During install: check "Add Python to PATH"
+
+⬜  Verify install:
+     Open terminal → run: python --version
+
+⬜  Install Git (optional but recommended)
+     → https://git-scm.com/download/win
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+4. TA-LIB (Windows special step)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+TA-Lib requires a precompiled C binary on Windows.
+
+⬜  Download the correct .whl file for your Python version:
+     → https://github.com/cgohlke/talib-binary/releases
+     → Pick: TA_Lib‑0.4.x‑cpXXX‑cpXXX‑win_amd64.whl
+       (XXX = your Python version, e.g. cp312 for Python 3.12)
+
+⬜  Install it:
+     pip install TA_Lib‑0.4.x‑cp312‑cp312‑win_amd64.whl
+
+NOTE: If you skip this, we will use pandas-ta only (which is pure Python
+      and installs normally). pandas-ta covers ~90% of what we need.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+5. NIFTY 500 STOCK LIST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⬜  Download NIFTY 500 constituents CSV from NSE:
+     → https://www.niftyindices.com/IndexConstituent/ind_nifty500list.csv
+
+⬜  Save it as: data/nifty500.csv inside the project folder
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+6. ENVIRONMENT FILE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Once the project is created, you will need to fill in a .env file:
+
+⬜  .env file will contain:
+     ANGEL_API_KEY=
+     ANGEL_CLIENT_ID=
+     ANGEL_PASSWORD=
+     ANGEL_TOTP_SECRET=
+     TELEGRAM_BOT_TOKEN=
+     TELEGRAM_CHAT_ID=
+
+NOTE: Never share this file. It will be in .gitignore automatically.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SUMMARY CHECKLIST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⬜  Angel One account opened
+⬜  SmartAPI registered + API Key obtained
+⬜  Telegram Bot Token obtained
+⬜  Telegram Chat ID obtained
+⬜  Python 3.12 installed
+⬜  TA-Lib .whl downloaded (or decided to use pandas-ta only)
+⬜  NIFTY 500 CSV downloaded
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
