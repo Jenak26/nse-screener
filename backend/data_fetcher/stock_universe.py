@@ -1,9 +1,8 @@
 import pandas as pd
-from database.db import get_session, init_db
+from database.db import get_session
 from database.models import Stock
 from config.settings import STOCK_UNIVERSE_PATH
 
-# F&O eligible symbols (NSE F&O list)
 FNO_SYMBOLS = {
     "RELIANCE","TCS","HDFCBANK","INFY","ICICIBANK","HINDUNILVR","ITC","SBIN","BHARTIARTL",
     "KOTAKBANK","LT","AXISBANK","ASIANPAINT","MARUTI","TITAN","BAJFINANCE","NESTLEIND",
@@ -14,9 +13,11 @@ FNO_SYMBOLS = {
     "HAL","BEL","IRFC","TRENT","ZOMATO","IRCTC","DMART",
 }
 
-def load_stock_universe():
+
+def load_stock_universe(path: str | None = None) -> None:
     """Load NIFTY 500 CSV into stocks table. Safe to call multiple times."""
-    df = pd.read_csv(STOCK_UNIVERSE_PATH)
+    csv_path = path or STOCK_UNIVERSE_PATH
+    df = pd.read_csv(csv_path)
     session = get_session()
     try:
         for _, row in df.iterrows():
@@ -34,12 +35,14 @@ def load_stock_universe():
     finally:
         session.close()
 
+
 def get_all_symbols() -> list[str]:
     session = get_session()
     try:
         return [r.symbol for r in session.query(Stock.symbol).all()]
     finally:
         session.close()
+
 
 def get_fno_symbols() -> list[str]:
     session = get_session()
