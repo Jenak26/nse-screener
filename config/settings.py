@@ -15,13 +15,10 @@ STOCK_UNIVERSE_PATH: str = os.getenv("STOCK_UNIVERSE_PATH", "data/nifty500.csv")
 CANDLE_RETENTION_DAYS_INTRADAY: int = int(os.getenv("CANDLE_RETENTION_DAYS_INTRADAY", "30"))
 CANDLE_RETENTION_DAYS_DAILY: int = int(os.getenv("CANDLE_RETENTION_DAYS_DAILY", "365"))
 
-REQUIRED_AT_RUNTIME = ["ANGEL_API_KEY", "ANGEL_CLIENT_ID", "ANGEL_PASSWORD", "ANGEL_TOTP_SECRET"]
-
 def validate_runtime_config():
-    """Call this at startup. Raises ValueError if required secrets are missing."""
-    missing = [k for k in REQUIRED_AT_RUNTIME if not os.getenv(k)]
-    if missing:
-        raise ValueError(
-            f"Missing required environment variables: {', '.join(missing)}\n"
-            f"Copy .env.example to .env and fill in your credentials."
+    """Warn if optional Telegram credentials are missing (alerts will be silently skipped)."""
+    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
+        import logging
+        logging.getLogger(__name__).warning(
+            "TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID not set — Telegram alerts disabled."
         )
