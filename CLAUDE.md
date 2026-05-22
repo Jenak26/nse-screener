@@ -1,178 +1,103 @@
-# TraDad — Stock Market Intelligence Dashboard
+# NSE Stock Screener
 
 ## Project Purpose
 
-A professional-grade market scanner and pattern detection dashboard for Indian equity markets (NSE), built for a swing/intraday trader. The goal is to answer **"What are the best setups in the market RIGHT NOW?"** within 1–5 seconds — without manually scanning charts for hours.
+A fast, clean stock screener for NIFTY 500 stocks filtered by real fundamentals — P/E, ROE, Debt/Equity, Revenue Growth, Promoter Holding. Positioned as a better-designed, faster alternative to Screener.in. Built as a resume project targeting FAANG and finance companies (Google, Meta, Amazon, JP Morgan, Goldman Sachs, BlackRock).
 
-This is NOT a prediction system. It finds high-probability setups automatically.
-
----
-
-## Target User
-
-A retail trader (father) who trades NSE stocks across intraday, swing, and positional timeframes. Needs a fast, reliable tool that replaces manual chart scanning.
+**The differentiator:** Pre-computed daily pipeline means sub-second filter response. Clean React UI vs. the cluttered UX of existing tools.
 
 ---
 
 ## Core Architecture
 
 ```
-Market APIs
-    ↓
-Data Fetcher (background, scheduled)
-    ↓
-OHLC Candle Store (SQLite → PostgreSQL)
-    ↓
-Pattern Detection Engine
-    ↓
-Scoring Engine
-    ↓
-Sector Strength Engine
-    ↓
-Signal Database
-    ↓
-Streamlit Dashboard (reads DB, never scans live)
-    ↓
-Telegram Alerts
+NIFTY 500 list (data/nifty500.csv)
+        ↓
+Pipeline (daily at 6:30 AM IST via APScheduler)
+  ├── yfinance → P/E, Market Cap, ROE, D/E, Revenue Growth
+  └── NSE shareholding CSV → Promoter Holding %
+        ↓
+SQLite DB (stocks table, 500 rows, refreshed daily)
+        ↓
+FastAPI (Railway) — reads DB only, never fetches live on request
+        ↓
+React + Vite (Vercel) — TanStack Table + TanStack Query
 ```
 
-**Critical rule:** Background workers scan continuously (1m / 5m / 15m intervals). The UI only reads stored results — never triggers live scans on button clicks.
+**Critical rule:** The pipeline pre-computes everything. The API never calls yfinance on a user request. All filtering happens via SQL WHERE clauses, not Python loops.
 
 ---
 
 ## Tech Stack
 
-| Layer | Tool | Reason |
-|---|---|---|
-| Backend | Python 3.12+ | Best for trading/data/ML |
-| Dashboard | Streamlit | Fast, professional, real-time refresh |
-| Charts | Plotly | Interactive, professional |
-| DB (Phase 1) | SQLite | Zero setup, local |
-| DB (Phase 2) | PostgreSQL | Production-grade |
-| Scheduler | APScheduler → Celery+Redis | Background scan jobs |
-| Technical Analysis | pandas-ta, TA-Lib | Indicators + patterns |
-| Alerts | python-telegram-bot | Telegram push alerts |
-| Hosting (Phase 1) | Local PC | Free |
-| Hosting (Phase 2) | VPS (DigitalOcean / Hetzner) | ~₹500–1500/month |
-
----
-
-## Data Sources
-
-| Phase | Source | Cost |
-|---|---|---|
-| 1 | yfinance (historical), nsepython (live NSE), jugaad-data | Free |
-| 1+ | Angel One SmartAPI (real-time WebSocket) | Free with demat account |
-| 2 | Zerodha Kite Connect | ~₹2000/month |
+| Layer | Tool |
+|---|---|
+| Frontend | React 18 + Vite + TypeScript |
+| Styling | Tailwind CSS |
+| Table | TanStack Table v8 |
+| Data fetching | TanStack Query v5 |
+| Charts (Phase 2) | Recharts |
+| Backend | FastAPI + Python 3.12 |
+| ORM | SQLAlchemy 2 |
+| DB Phase 1 | SQLite |
+| DB Phase 2 | PostgreSQL (Railway) |
+| Scheduler | APScheduler 3 |
+| Data source | yfinance + NSE public CSVs |
+| Deployment | Vercel (frontend) + Railway (backend) |
 
 ---
 
 ## Database Schema
 
 ```
-stocks          — symbol, company_name, sector, market_cap, is_fno
-candles         — symbol, timeframe, timestamp, open, high, low, close, volume
-detected_patterns — symbol, timeframe, pattern_name, confidence_score, trend_direction, volume_confirmation, detected_at
-sector_strength — sector, strength_score, momentum_score, updated_at
-alerts          — symbol, alert_type, message, sent_at
-watchlists      — name, symbol, notes, tags
+stocks         — symbol, company_name, sector, market_cap, pe_ratio, roe,
+                 debt_to_equity, revenue_growth_yoy, promoter_holding,
+                 current_ratio, price, fifty_two_week_high, updated_at
+
+metric_history — symbol, metric, value, quarter, recorded_at  (Phase 2)
 ```
 
 ---
 
-## Pattern Detection
-
-Each pattern is a separate module returning:
-```python
-{"pattern_detected": bool, "confidence": int, "direction": str, "metadata": dict}
-```
-
-**Candlestick:** Hammer, Bullish Engulfing, Morning Star, Shooting Star, Doji  
-**Chart:** Double Bottom, Double Top, Flags, Triangles, Cup & Handle  
-**Momentum:** ORB, VWAP Bounce, Gap Up, Volume Breakout  
-**Indicator:** RSI Divergence, MACD Crossover, EMA Crossover, Bollinger Squeeze  
-**Breakout:** ATH, 52-Week High, Consolidation Breakout
-
----
-
-## Scoring Engine
-
-| Factor | Weight |
-|---|---|
-| Pattern quality | 25% |
-| Volume confirmation | 20% |
-| Trend alignment (MTF) | 20% |
-| Relative strength | 20% |
-| Sector strength | 15% |
-
-Score: 0–100. Higher = stronger setup.
-
----
-
-## Multi-Timeframe Analysis
-
-Supported: 5m, 15m, 1H, Daily, Weekly  
-Higher confidence assigned when signal aligns across multiple timeframes.
-
----
-
-## Dashboard Pages
-
-1. **Home** — Market overview (NIFTY/BANKNIFTY/FINNIFTY), top momentum stocks, sector strength panel, live alerts feed
-2. **Pattern Scanner** — Click pattern → see all matching stocks instantly (table with confidence, TF, volume, trend)
-3. **Multi-TF Analysis** — Per-stock signal across all timeframes
-4. **Momentum Rankings** — Relative strength rankings (Intraday / Swing / Positional tabs)
-5. **Breakout Detection** — ATH, 52W, consolidation, volume breakouts
-6. **VWAP & Intraday** — ORB, VWAP bounce, gap-up momentum
-7. **Sector Rotation** — Strongest/weakest sectors, capital flow
-8. **Relative Strength** — Stocks outperforming NIFTY/sector
-9. **Volume Analysis** — Unusual volume, accumulation/distribution
-10. **Watchlist** — Custom watchlists with alerts and notes
-11. **Stock Detail** — Chart, indicators, active patterns, momentum score, S/R levels
-12. **Backtesting** — Historical pattern win rates, RR stats
-
----
-
-## Project Folder Structure
+## API Endpoints
 
 ```
-tradad/
-├── app/                    # Streamlit pages
-│   ├── dashboard/
-│   ├── charts/
-│   ├── tables/
-│   └── filters/
+GET /api/stocks          — filtered, sorted, paginated
+GET /api/stocks/{symbol} — detail + sector rank percentiles
+GET /api/sectors         — sector averages
+GET /api/meta            — last_updated, total_stocks, pipeline_status
+```
+
+---
+
+## Folder Structure
+
+```
+nse-screener/
+├── frontend/
+│   └── src/
+│       ├── components/     FilterPanel, StockTable, StockDetailModal
+│       ├── hooks/          useStocks.ts
+│       ├── lib/            api.ts
+│       ├── types/          stock.ts
+│       └── App.tsx
 ├── backend/
-│   ├── data_fetcher/       # API clients
-│   ├── websocket/          # Real-time feed
-│   ├── scanners/           # Background scan jobs
-│   ├── patterns/           # One module per pattern
-│   ├── indicators/         # Technical indicators
-│   ├── scoring/            # Confidence scoring
-│   ├── alerts/             # Telegram bot
-│   ├── sectors/            # Sector strength engine
-│   └── rankings/           # Momentum rankings
-├── database/
-│   ├── models/
-│   ├── migrations/
-│   └── queries/
-├── config/                 # Settings, API keys (env-based)
-├── logs/
-├── tests/
-├── utils/
-├── main.py                 # Entry point
-└── requirements.txt
+│   ├── api/
+│   │   ├── main.py
+│   │   ├── routes/         stocks.py, sectors.py
+│   │   └── schemas.py
+│   ├── pipeline/
+│   │   ├── fetcher.py      yfinance bulk fetch
+│   │   ├── nse_holdings.py NSE shareholding CSV parser
+│   │   └── scheduler.py    APScheduler daily job
+│   └── database/
+│       ├── models.py
+│       ├── db.py
+│       └── queries.py      SQL filter/sort query builder
+├── data/
+│   └── nifty500.csv
+└── tests/
 ```
-
----
-
-## Key Constraints
-
-- **Windows development** (dev machine is Windows 11) — TA-Lib needs precompiled wheel on Windows
-- **Student budget** — Phase 1 must be ₹0/month
-- **API keys in environment variables** — never hardcoded
-- **No live scanning on button click** — always read from DB
-- **Target response time:** < 5 seconds for any dashboard page
 
 ---
 
@@ -180,6 +105,17 @@ tradad/
 
 | Phase | Scope | Status |
 |---|---|---|
-| 1 | Foundation: data pipeline, core patterns, basic dashboard, Telegram alerts | Planning |
-| 2 | Full pattern library, scoring engine, sector rotation, MTF analysis | Planned |
-| 3 | Backtesting, advanced analytics, PostgreSQL, VPS deployment | Planned |
+| 1 | Pipeline + FastAPI + React UI + Live deployment | Planning |
+| 2 | Sector view, presets, sparklines, PostgreSQL, demo GIF | Planned |
+
+**Design spec:** `docs/superpowers/specs/2026-05-22-nse-screener-design.md`
+
+---
+
+## Key Constraints
+
+- **Windows development** (Windows 11) — no TA-Lib, no Linux-only dependencies
+- **Free tier deployment** — Railway 512MB RAM limit; pipeline batches yfinance calls (10 symbols, 1s delay)
+- **No auth** — public read-only tool
+- **No live scanning on request** — API reads DB only
+- **Target response time:** < 500ms for any filter query
