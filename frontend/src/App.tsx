@@ -4,6 +4,7 @@ import { FilterPanel } from "./components/FilterPanel";
 import { StockTable } from "./components/StockTable";
 import { StockDetailModal } from "./components/StockDetailModal";
 import { SectorView } from "./components/SectorView";
+import { PresetBar } from "./components/PresetBar";
 import { useMeta, useSectors, useStocks } from "./hooks/useStocks";
 import type { Filters } from "./types/stock";
 
@@ -75,6 +76,14 @@ function Screener() {
           )}
         </div>
       </header>
+
+      {tab === "screener" && (
+        <PresetBar
+          currentFilters={filters}
+          defaultFilters={DEFAULT_FILTERS}
+          onApply={handleFilters}
+        />
+      )}
 
       {tab === "screener" ? (
         <div className="flex">
