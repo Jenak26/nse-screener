@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useStockDetail } from "../hooks/useStocks";
+import { Sparkline } from "./Sparkline";
 
 interface Props {
   symbol: string;
@@ -138,6 +139,12 @@ export function StockDetailModal({ symbol, onClose }: Props) {
                   : null
               }
             />
+            {(data.history?.roe?.length ?? 0) >= 2 && (
+              <Sparkline data={data.history.roe} label="ROE" suffix="%" color="#16a34a" />
+            )}
+            {(data.history?.pe_ratio?.length ?? 0) >= 2 && (
+              <Sparkline data={data.history.pe_ratio} label="P/E" color="#3b82f6" />
+            )}
           </div>
         ) : (
           <p className="p-6 text-sm text-slate-400 text-center">

@@ -14,6 +14,11 @@ export interface Stock {
   updated_at: string | null;
 }
 
+export interface MetricPoint {
+  quarter: string;
+  value: number;
+}
+
 export interface StockDetail extends Stock {
   sector_rank: {
     pe_percentile?: number | null;
@@ -22,6 +27,7 @@ export interface StockDetail extends Stock {
     revenue_growth_percentile?: number | null;
     promoter_percentile?: number | null;
   };
+  history: Record<string, MetricPoint[]>;
 }
 
 export interface StocksResponse {
