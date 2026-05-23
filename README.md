@@ -4,6 +4,8 @@ Screen NIFTY 500 stocks by real fundamentals — P/E, ROE, Debt/Equity, Revenue 
 
 **Live demo:** _add your Vercel URL here_
 
+![NSE Screener demo](docs/demo.gif)
+
 ## Stack
 
 - **Frontend:** React 19 + TypeScript + Vite + Tailwind CSS 4 + TanStack Table v8 + TanStack Query v5
