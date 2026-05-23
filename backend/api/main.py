@@ -32,3 +32,11 @@ app.add_middleware(
 
 app.include_router(stocks.router, prefix="/api")
 app.include_router(sectors.router, prefix="/api")
+
+
+@app.post("/api/admin/run-pipeline")
+async def trigger_pipeline():
+    from backend.pipeline.scheduler import run_pipeline
+    import asyncio
+    asyncio.create_task(run_pipeline())
+    return {"status": "pipeline started"}
