@@ -32,6 +32,27 @@ async def run_pipeline() -> None:
                     setattr(existing, k, v)
             else:
                 session.add(Stock(**data))
+        from backend.database.models import MetricHistory
+        from datetime import datetime as _dt
+
+        now = _dt.utcnow()
+        quarter_map = {1: "Q3", 2: "Q3", 3: "Q3", 4: "Q4", 5: "Q4", 6: "Q4", 7: "Q1", 8: "Q1", 9: "Q1", 10: "Q2", 11: "Q2", 12: "Q2"}
+        fy = now.year + 1 if now.month >= 4 else now.year
+        quarter_label = f"{quarter_map[now.month]}FY{str(fy)[2:]}"
+
+        snapshot_metrics = ["pe_ratio", "roe", "revenue_growth_yoy", "debt_to_equity"]
+        for data in stocks_data:
+            for metric in snapshot_metrics:
+                val = data.get(metric)
+                if val is not None:
+                    session.add(MetricHistory(
+                        symbol=data["symbol"],
+                        metric=metric,
+                        value=val,
+                        quarter=quarter_label,
+                        recorded_at=_dt.utcnow(),
+                    ))
+
         session.commit()
         logger.info(f"Pipeline complete: upserted {len(stocks_data)} stocks")
     finally:

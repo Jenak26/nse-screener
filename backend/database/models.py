@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Column, DateTime, Float, Text
+from sqlalchemy import Column, DateTime, Float, Integer, Text
 from sqlalchemy.orm import DeclarativeBase
 
 
@@ -24,3 +24,14 @@ class Stock(Base):
     price = Column(Float)
     fifty_two_week_high = Column(Float)
     updated_at = Column(DateTime, default=datetime.utcnow)
+
+
+class MetricHistory(Base):
+    __tablename__ = "metric_history"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    symbol = Column(Text, nullable=False)
+    metric = Column(Text, nullable=False)   # "roe", "pe_ratio", "revenue_growth_yoy", "debt_to_equity"
+    value = Column(Float, nullable=False)
+    quarter = Column(Text, nullable=False)  # "Q1FY26"
+    recorded_at = Column(DateTime, default=datetime.utcnow)

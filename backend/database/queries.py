@@ -3,7 +3,7 @@ from typing import Optional
 from sqlalchemy import select, func
 from sqlalchemy.orm import Session
 
-from backend.database.models import Stock
+from backend.database.models import MetricHistory, Stock
 
 VALID_SORT_COLUMNS = {
     "symbol", "company_name", "sector", "market_cap", "pe_ratio",
@@ -117,3 +117,17 @@ def get_distinct_sectors(session: Session) -> list[str]:
     return list(session.scalars(
         select(Stock.sector).where(Stock.sector.isnot(None)).distinct().order_by(Stock.sector)
     ).all())
+
+
+def get_metric_history(session: Session, symbol: str, metrics: list[str]) -> dict[str, list[dict]]:
+    """Return {metric: [{quarter, value}, ...]} sorted oldest-first, last 8 quarters."""
+    result = {}
+    for metric in metrics:
+        rows = list(session.execute(
+            select(MetricHistory.quarter, MetricHistory.value)
+            .where(MetricHistory.symbol == symbol, MetricHistory.metric == metric)
+            .order_by(MetricHistory.recorded_at.asc())
+            .limit(8)
+        ).all())
+        result[metric] = [{"quarter": r.quarter, "value": r.value} for r in rows]
+    return result
