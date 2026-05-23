@@ -22,8 +22,14 @@ class StockOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class MetricPointOut(BaseModel):
+    quarter: str
+    value: float
+
+
 class StockDetailOut(StockOut):
     sector_rank: dict = {}
+    history: dict[str, list[MetricPointOut]] = {}
 
 
 class StocksResponse(BaseModel):

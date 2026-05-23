@@ -7,6 +7,7 @@ from backend.api.schemas import StockDetailOut, StocksResponse
 from backend.database.db import get_session
 from backend.database.queries import (
     get_last_updated,
+    get_metric_history,
     get_sector_percentiles,
     get_stock_by_symbol,
     get_stocks,
@@ -48,7 +49,12 @@ def get_stock(symbol: str, session: Session = Depends(get_session)):
     if not stock:
         raise HTTPException(status_code=404, detail="Stock not found")
     rank = get_sector_percentiles(session, symbol.upper())
+    history = get_metric_history(
+        session, symbol.upper(),
+        ["pe_ratio", "roe", "revenue_growth_yoy", "debt_to_equity"],
+    )
     return StockDetailOut(
         **{c.key: getattr(stock, c.key) for c in stock.__table__.columns},
         sector_rank=rank,
+        history=history,
     )
