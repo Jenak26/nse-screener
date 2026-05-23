@@ -18,7 +18,7 @@ export function Sparkline({ data, color = "#3b82f6", label, suffix = "" }: Props
             dot={false}
           />
           <Tooltip
-            formatter={(v: number) => [`${v.toFixed(1)}${suffix}`, label]}
+            formatter={(v) => [`${Number(v).toFixed(1)}${suffix}`, label]}
             labelFormatter={(l) => String(l)}
             contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e2e8f0" }}
           />
