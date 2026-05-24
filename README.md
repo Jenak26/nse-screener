@@ -2,7 +2,7 @@
 
 A fast, clean stock screener for India's top 500 listed companies (NIFTY 500). Filter by real fundamentals — P/E ratio, ROE, debt levels, revenue growth, and promoter holding — and get results in under 500ms.
 
-**Live app → [nse-screener-ajdhzrw2s-janak-kabras-projects.vercel.app](https://nse-screener-ajdhzrw2s-janak-kabras-projects.vercel.app)**
+**Live app → [nse-screener-ajdhzrw2s-janak-kabras-projects.vercel.app](https://nse-screener-ajdhzrw2s-janak-kabras-projects.vercel.app)** — data updates automatically every morning at 6:30 AM IST
 
 ![NSE Screener demo](docs/demo.gif)
 
