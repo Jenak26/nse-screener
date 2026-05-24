@@ -14,7 +14,10 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    init_db()
+    try:
+        init_db()
+    except Exception as e:
+        logging.warning(f"DB init failed on startup: {e}")
     scheduler = create_scheduler(settings.pipeline_run_hour, settings.pipeline_run_minute)
     scheduler.start()
     yield
@@ -32,6 +35,11 @@ app.add_middleware(
 
 app.include_router(stocks.router, prefix="/api")
 app.include_router(sectors.router, prefix="/api")
+
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
 
 
 @app.post("/api/admin/run-pipeline")

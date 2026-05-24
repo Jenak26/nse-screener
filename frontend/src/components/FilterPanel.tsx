@@ -9,7 +9,7 @@ interface Props {
 
 function Label({ children }: { children: React.ReactNode }) {
   return (
-    <p className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-1">
+    <p className="text-[10px] font-semibold text-white/30 uppercase tracking-[1.5px] mb-1.5">
       {children}
     </p>
   );
@@ -32,7 +32,7 @@ function NumInput({
         value={value}
         placeholder={placeholder ?? "—"}
         onChange={(e) => onChange(field, e.target.value)}
-        className="w-full px-3 py-1.5 text-sm border border-white/20 rounded-lg bg-white/10 text-white/90 placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+        className="w-full px-3 py-1.5 text-sm bg-white/[0.06] border border-white/[0.08] rounded-lg text-white/80 placeholder-white/20 focus:outline-none focus:ring-1 focus:ring-white/20 focus:border-white/20 transition-colors"
       />
     </div>
   );
@@ -43,16 +43,16 @@ export function FilterPanel({ filters, sectors, onChange, onReset }: Props) {
   const hasFilters = Object.values(filters).some(Boolean);
 
   return (
-    <aside className="w-64 shrink-0 bg-white/5 backdrop-blur-md border-r border-white/10 sticky top-[57px] h-[calc(100vh-57px)] overflow-y-auto">
-      <div className="p-5 space-y-5">
+    <aside className="w-56 shrink-0 sticky top-[70px] self-start">
+      <div className="bg-[rgba(28,28,30,0.72)] backdrop-blur-2xl border border-white/[0.08] rounded-2xl p-5 space-y-5 shadow-[0_4px_24px_rgba(0,0,0,0.25)]">
         <div className="flex items-center justify-between">
-          <span className="text-sm font-semibold text-white/80">Filters</span>
+          <span className="text-[13px] font-semibold text-white/70">Filters</span>
           {hasFilters && (
             <button
               onClick={onReset}
-              className="text-xs font-medium text-blue-400 hover:text-blue-300"
+              className="text-[11px] font-medium text-white/35 hover:text-white/60 transition-colors"
             >
-              Reset all
+              Reset
             </button>
           )}
         </div>
@@ -62,11 +62,11 @@ export function FilterPanel({ filters, sectors, onChange, onReset }: Props) {
           <select
             value={filters.sector}
             onChange={(e) => set("sector", e.target.value)}
-            className="w-full px-3 py-1.5 text-sm border border-white/20 rounded-lg bg-white/10 text-white/90 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+            className="w-full px-3 py-1.5 text-sm bg-white/[0.06] border border-white/[0.08] rounded-lg text-white/80 focus:outline-none focus:ring-1 focus:ring-white/20 focus:border-white/20 transition-colors"
           >
-            <option value="" className="bg-slate-800">All sectors</option>
+            <option value="" className="bg-[#1c1c1e]">All sectors</option>
             {sectors.map((s) => (
-              <option key={s} value={s} className="bg-slate-800">{s}</option>
+              <option key={s} value={s} className="bg-[#1c1c1e]">{s}</option>
             ))}
           </select>
         </div>

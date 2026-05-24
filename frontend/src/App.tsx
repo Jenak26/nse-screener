@@ -90,14 +90,14 @@ function Screener() {
       )}
 
       {tab === "screener" ? (
-        <div className="flex">
+        <div className="flex gap-4 px-4 pt-3 pb-8">
           <FilterPanel
             filters={filters}
             sectors={(sectors ?? []).map((s) => s.sector)}
             onChange={handleFilters}
             onReset={() => { setFilters(DEFAULT_FILTERS); setPage(1); }}
           />
-          <main className="flex-1 p-6 min-w-0 text-white/90">
+          <main className="flex-1 min-w-0">
             <StockTable
               stocks={data?.stocks ?? []}
               total={data?.total ?? 0}

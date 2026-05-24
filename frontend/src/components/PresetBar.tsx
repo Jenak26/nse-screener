@@ -45,22 +45,23 @@ export function PresetBar({ currentFilters, defaultFilters, onApply }: Props) {
     onApply({ ...defaultFilters, ...filters });
 
   return (
-    <div className="flex items-center gap-2 px-6 py-2 bg-white/5 backdrop-blur-sm border-b border-white/10 overflow-x-auto">
-      <span className="text-xs text-white/40 font-medium shrink-0">Presets:</span>
+    <div className="flex items-center gap-2 px-4 py-2.5 overflow-x-auto">
+      <span className="text-[10px] font-semibold text-white/25 uppercase tracking-[1.5px] shrink-0">Presets</span>
+      <div className="w-px h-3 bg-white/[0.1] shrink-0" />
       {BUILT_IN.map((p) => (
         <button key={p.name} onClick={() => apply(p.filters)}
-          className="px-3 py-1 text-xs rounded-full border border-white/20 text-white/60 hover:border-blue-400 hover:text-blue-400 whitespace-nowrap transition-colors">
+          className="px-3 py-1 text-xs rounded-full border border-white/[0.1] text-white/45 hover:border-white/25 hover:text-white/75 whitespace-nowrap transition-colors">
           {p.name}
         </button>
       ))}
       {custom.map((p, i) => (
-        <div key={i} className="flex items-center gap-0.5 group">
+        <div key={i} className="flex items-center gap-0.5 group shrink-0">
           <button onClick={() => apply(p.filters)}
-            className="px-3 py-1 text-xs rounded-full border border-blue-400/40 text-blue-400 hover:bg-blue-400/10 whitespace-nowrap transition-colors">
+            className="px-3 py-1 text-xs rounded-full border border-white/[0.18] text-white/60 hover:bg-white/[0.06] whitespace-nowrap transition-colors">
             {p.name}
           </button>
           <button onClick={() => deletePreset(i)}
-            className="opacity-0 group-hover:opacity-100 text-white/30 hover:text-red-400 text-xs px-1 transition-all">
+            className="opacity-0 group-hover:opacity-100 text-white/25 hover:text-red-400 text-xs px-1 transition-all">
             ×
           </button>
         </div>
@@ -69,14 +70,21 @@ export function PresetBar({ currentFilters, defaultFilters, onApply }: Props) {
         <div className="flex items-center gap-1 shrink-0">
           <input autoFocus value={name} onChange={(e) => setName(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && savePreset()}
-            placeholder="Preset name" className="px-2 py-1 text-xs border border-white/20 bg-white/10 text-white/90 placeholder-white/30 rounded-lg w-28 focus:outline-none focus:ring-1 focus:ring-blue-400" />
-          <button onClick={savePreset} className="px-2 py-1 text-xs bg-blue-500 text-white rounded-lg hover:bg-blue-400 transition-colors">Save</button>
-          <button onClick={() => setSaving(false)} className="px-2 py-1 text-xs text-white/40 hover:text-white/60 transition-colors">Cancel</button>
+            placeholder="Name…"
+            className="px-2.5 py-1 text-xs bg-white/[0.06] border border-white/[0.1] text-white/80 placeholder-white/25 rounded-lg w-24 focus:outline-none focus:ring-1 focus:ring-white/20" />
+          <button onClick={savePreset}
+            className="px-2.5 py-1 text-xs bg-white/[0.1] border border-white/[0.12] text-white/80 rounded-lg hover:bg-white/[0.15] transition-colors">
+            Save
+          </button>
+          <button onClick={() => setSaving(false)}
+            className="px-2 py-1 text-xs text-white/30 hover:text-white/50 transition-colors">
+            ✕
+          </button>
         </div>
       ) : (
         <button onClick={() => setSaving(true)}
-          className="px-3 py-1 text-xs text-white/30 hover:text-blue-400 whitespace-nowrap transition-colors">
-          + Save current
+          className="px-3 py-1 text-xs text-white/25 hover:text-white/50 whitespace-nowrap transition-colors shrink-0">
+          + Save
         </button>
       )}
     </div>
