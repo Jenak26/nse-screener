@@ -2,7 +2,7 @@
 
 A fast, clean stock screener for India's top 500 listed companies (NIFTY 500). Filter by real fundamentals — P/E ratio, ROE, debt levels, revenue growth, and promoter holding — and get results in under 500ms.
 
-**Live app → [nse-screener-ajdhzrw2s-janak-kabras-projects.vercel.app](https://nse-screener-ajdhzrw2s-janak-kabras-projects.vercel.app)** — data updates automatically every morning at 6:30 AM IST
+**Live app → [nse-screener-git-master-janak-kabras-projects.vercel.app](https://nse-screener-git-master-janak-kabras-projects.vercel.app)** — data updates automatically every morning at 6:30 AM IST
 
 ![NSE Screener demo](docs/demo.gif)
 
@@ -19,6 +19,7 @@ I wanted to build something faster and cleaner. The core idea was simple: **pre-
 ## What it does
 
 **Stock Screener tab**
+- Floating glassmorphic navbar — Apple macOS-style frosted glass with rounded pill tab switcher, detached from the viewport edge
 - Table of all NIFTY 500 stocks with price, sector, P/E, ROE, D/E, revenue growth, and promoter holding
 - Filter panel on the left — narrow down by any combination of metrics
 - One-click preset screens: High ROE, Low Debt, Growth Stocks, Value Picks, Strong Promoters
