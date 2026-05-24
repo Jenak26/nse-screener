@@ -48,36 +48,38 @@ function Screener() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      <header className="sticky top-0 z-40 bg-white/10 backdrop-blur-xl border-b border-white/10 shadow-lg shadow-black/20 h-[57px] flex items-center px-6 gap-3">
-        <div className="flex items-baseline gap-2">
-          <h1 className="text-base font-bold text-white tracking-tight">NSE Screener</h1>
-          <span className="text-xs text-blue-400/80 font-semibold uppercase tracking-wider">NIFTY 500</span>
-        </div>
-        <nav className="flex gap-1 ml-6">
-          {(["screener", "sectors"] as const).map((t) => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              className={`px-3 py-1.5 text-sm rounded-lg font-medium capitalize transition-all ${
-                tab === t
-                  ? "bg-white/20 text-white shadow-sm"
-                  : "text-white/50 hover:text-white/80 hover:bg-white/10"
-              }`}
-            >
-              {t}
-            </button>
-          ))}
-        </nav>
-        <div className="ml-auto flex items-center gap-4 text-xs text-white/40">
-          {meta?.total_stocks ? <span>{meta.total_stocks.toLocaleString()} stocks</span> : null}
-          {meta?.last_updated ? (
-            <span>Updated {new Date(meta.last_updated).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</span>
-          ) : null}
-          {meta?.pipeline_status === "empty" && (
-            <span className="text-amber-400 font-medium">Run pipeline to populate data</span>
-          )}
-        </div>
-      </header>
+      <div className="sticky top-3 z-40 px-4">
+        <header className="bg-[rgba(28,28,30,0.82)] backdrop-blur-2xl backdrop-saturate-200 border border-white/10 rounded-2xl h-[54px] flex items-center px-5 gap-3 shadow-[0_8px_32px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.06)]">
+          <div className="flex items-baseline gap-2">
+            <h1 className="text-[15px] font-bold text-white tracking-tight">NSE Screener</h1>
+            <span className="text-[9px] text-white/30 font-semibold uppercase tracking-[1.8px]">NIFTY 500</span>
+          </div>
+          <nav className="flex gap-0.5 ml-5 bg-white/[0.07] rounded-[10px] p-[3px] border border-white/[0.06]">
+            {(["screener", "sectors"] as const).map((t) => (
+              <button
+                key={t}
+                onClick={() => setTab(t)}
+                className={`px-4 py-[5px] text-xs rounded-lg font-medium capitalize transition-all ${
+                  tab === t
+                    ? "bg-white/[0.14] text-white shadow-[0_1px_4px_rgba(0,0,0,0.3)]"
+                    : "text-white/40 hover:text-white/70"
+                }`}
+              >
+                {t}
+              </button>
+            ))}
+          </nav>
+          <div className="ml-auto flex items-center gap-4 text-[11px] text-white/[0.22]">
+            {meta?.total_stocks ? <span>{meta.total_stocks.toLocaleString()} stocks</span> : null}
+            {meta?.last_updated ? (
+              <span>{new Date(meta.last_updated).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</span>
+            ) : null}
+            {meta?.pipeline_status === "empty" && (
+              <span className="text-amber-400 font-medium">Run pipeline to populate data</span>
+            )}
+          </div>
+        </header>
+      </div>
 
       {tab === "screener" && (
         <PresetBar
