@@ -20,21 +20,21 @@ function Row({
       ? ""
       : higherBetter
       ? percentile >= 66
-        ? "text-emerald-600"
+        ? "text-emerald-400"
         : percentile >= 33
-        ? "text-amber-500"
-        : "text-red-500"
+        ? "text-amber-400"
+        : "text-red-400"
       : percentile <= 33
-      ? "text-emerald-600"
+      ? "text-emerald-400"
       : percentile <= 66
-      ? "text-amber-500"
-      : "text-red-500";
+      ? "text-amber-400"
+      : "text-red-400";
 
   return (
-    <div className="flex justify-between items-center py-2.5 border-b border-slate-100 last:border-0">
-      <span className="text-sm text-slate-500">{label}</span>
+    <div className="flex justify-between items-center py-2.5 border-b border-white/10 last:border-0">
+      <span className="text-sm text-white/50">{label}</span>
       <div className="flex items-center gap-3">
-        <span className="text-sm font-medium text-slate-800">{value ?? "—"}</span>
+        <span className="text-sm font-medium text-white/90">{value ?? "—"}</span>
         {percentile != null && (
           <span className={`text-xs font-semibold ${pctColor}`}>
             {percentile}th pct
@@ -59,17 +59,17 @@ export function StockDetailModal({ symbol, onClose }: Props) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-start p-6 border-b border-slate-100">
+      <div className="bg-slate-800/80 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl shadow-black/50 w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-start p-6 border-b border-white/10">
           <div>
-            <h2 className="text-xl font-bold text-slate-900">{symbol}</h2>
+            <h2 className="text-xl font-bold text-white">{symbol}</h2>
             {data && (
               <>
-                <p className="text-sm text-slate-500 mt-0.5">{data.company_name}</p>
-                <span className="inline-block mt-2 px-2.5 py-0.5 text-xs rounded-full bg-slate-100 text-slate-600">
+                <p className="text-sm text-white/50 mt-0.5">{data.company_name}</p>
+                <span className="inline-block mt-2 px-2.5 py-0.5 text-xs rounded-full bg-white/10 text-white/60 border border-white/10">
                   {data.sector}
                 </span>
               </>
@@ -77,7 +77,7 @@ export function StockDetailModal({ symbol, onClose }: Props) {
           </div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-700 text-2xl leading-none p-1"
+            className="text-white/30 hover:text-white/70 text-2xl leading-none p-1 transition-colors"
           >
             ×
           </button>
@@ -86,18 +86,18 @@ export function StockDetailModal({ symbol, onClose }: Props) {
         {isLoading ? (
           <div className="p-6 space-y-3">
             {Array.from({ length: 7 }).map((_, i) => (
-              <div key={i} className="h-8 bg-slate-100 rounded-lg animate-pulse" />
+              <div key={i} className="h-8 bg-white/10 rounded-lg animate-pulse" />
             ))}
           </div>
         ) : data ? (
           <div className="p-6">
             {data.price != null && (
-              <div className="mb-5 p-4 bg-slate-50 rounded-xl">
-                <p className="text-2xl font-bold text-slate-900">
+              <div className="mb-5 p-4 bg-white/5 rounded-xl border border-white/10">
+                <p className="text-2xl font-bold text-white">
                   ₹{data.price.toFixed(2)}
                 </p>
                 {data.fifty_two_week_high != null && (
-                  <p className="text-xs text-slate-400 mt-1">
+                  <p className="text-xs text-white/40 mt-1">
                     52W High: ₹{data.fifty_two_week_high.toFixed(2)}
                   </p>
                 )}
@@ -147,7 +147,7 @@ export function StockDetailModal({ symbol, onClose }: Props) {
             )}
           </div>
         ) : (
-          <p className="p-6 text-sm text-slate-400 text-center">
+          <p className="p-6 text-sm text-white/40 text-center">
             Failed to load stock data.
           </p>
         )}

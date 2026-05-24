@@ -47,32 +47,34 @@ function Screener() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="sticky top-0 z-40 bg-white border-b border-slate-200 h-[57px] flex items-center px-6 gap-3">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+      <header className="sticky top-0 z-40 bg-white/10 backdrop-blur-xl border-b border-white/10 shadow-lg shadow-black/20 h-[57px] flex items-center px-6 gap-3">
         <div className="flex items-baseline gap-2">
-          <h1 className="text-base font-bold text-slate-900 tracking-tight">NSE Screener</h1>
-          <span className="text-xs text-slate-400 font-medium">NIFTY 500</span>
+          <h1 className="text-base font-bold text-white tracking-tight">NSE Screener</h1>
+          <span className="text-xs text-blue-400/80 font-semibold uppercase tracking-wider">NIFTY 500</span>
         </div>
         <nav className="flex gap-1 ml-6">
           {(["screener", "sectors"] as const).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
-              className={`px-3 py-1.5 text-sm rounded-lg font-medium capitalize transition-colors ${
-                tab === t ? "bg-blue-50 text-blue-700" : "text-slate-500 hover:text-slate-700"
+              className={`px-3 py-1.5 text-sm rounded-lg font-medium capitalize transition-all ${
+                tab === t
+                  ? "bg-white/20 text-white shadow-sm"
+                  : "text-white/50 hover:text-white/80 hover:bg-white/10"
               }`}
             >
               {t}
             </button>
           ))}
         </nav>
-        <div className="ml-auto flex items-center gap-4 text-xs text-slate-400">
+        <div className="ml-auto flex items-center gap-4 text-xs text-white/40">
           {meta?.total_stocks ? <span>{meta.total_stocks.toLocaleString()} stocks</span> : null}
           {meta?.last_updated ? (
             <span>Updated {new Date(meta.last_updated).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</span>
           ) : null}
           {meta?.pipeline_status === "empty" && (
-            <span className="text-amber-500 font-medium">Run pipeline to populate data</span>
+            <span className="text-amber-400 font-medium">Run pipeline to populate data</span>
           )}
         </div>
       </header>
@@ -93,7 +95,7 @@ function Screener() {
             onChange={handleFilters}
             onReset={() => { setFilters(DEFAULT_FILTERS); setPage(1); }}
           />
-          <main className="flex-1 p-6 min-w-0">
+          <main className="flex-1 p-6 min-w-0 text-white/90">
             <StockTable
               stocks={data?.stocks ?? []}
               total={data?.total ?? 0}

@@ -9,7 +9,7 @@ interface Props {
 
 function Label({ children }: { children: React.ReactNode }) {
   return (
-    <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
+    <p className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-1">
       {children}
     </p>
   );
@@ -32,7 +32,7 @@ function NumInput({
         value={value}
         placeholder={placeholder ?? "—"}
         onChange={(e) => onChange(field, e.target.value)}
-        className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-lg bg-white placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        className="w-full px-3 py-1.5 text-sm border border-white/20 rounded-lg bg-white/10 text-white/90 placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
       />
     </div>
   );
@@ -43,14 +43,14 @@ export function FilterPanel({ filters, sectors, onChange, onReset }: Props) {
   const hasFilters = Object.values(filters).some(Boolean);
 
   return (
-    <aside className="w-64 shrink-0 bg-white border-r border-slate-200 sticky top-[57px] h-[calc(100vh-57px)] overflow-y-auto">
+    <aside className="w-64 shrink-0 bg-white/5 backdrop-blur-md border-r border-white/10 sticky top-[57px] h-[calc(100vh-57px)] overflow-y-auto">
       <div className="p-5 space-y-5">
         <div className="flex items-center justify-between">
-          <span className="text-sm font-semibold text-slate-700">Filters</span>
+          <span className="text-sm font-semibold text-white/80">Filters</span>
           {hasFilters && (
             <button
               onClick={onReset}
-              className="text-xs font-medium text-blue-600 hover:text-blue-800"
+              className="text-xs font-medium text-blue-400 hover:text-blue-300"
             >
               Reset all
             </button>
@@ -62,11 +62,11 @@ export function FilterPanel({ filters, sectors, onChange, onReset }: Props) {
           <select
             value={filters.sector}
             onChange={(e) => set("sector", e.target.value)}
-            className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-1.5 text-sm border border-white/20 rounded-lg bg-white/10 text-white/90 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
           >
-            <option value="">All sectors</option>
+            <option value="" className="bg-slate-800">All sectors</option>
             {sectors.map((s) => (
-              <option key={s} value={s}>{s}</option>
+              <option key={s} value={s} className="bg-slate-800">{s}</option>
             ))}
           </select>
         </div>

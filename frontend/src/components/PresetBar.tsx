@@ -45,22 +45,22 @@ export function PresetBar({ currentFilters, defaultFilters, onApply }: Props) {
     onApply({ ...defaultFilters, ...filters });
 
   return (
-    <div className="flex items-center gap-2 px-6 py-2 bg-white border-b border-slate-100 overflow-x-auto">
-      <span className="text-xs text-slate-400 font-medium shrink-0">Presets:</span>
+    <div className="flex items-center gap-2 px-6 py-2 bg-white/5 backdrop-blur-sm border-b border-white/10 overflow-x-auto">
+      <span className="text-xs text-white/40 font-medium shrink-0">Presets:</span>
       {BUILT_IN.map((p) => (
         <button key={p.name} onClick={() => apply(p.filters)}
-          className="px-3 py-1 text-xs rounded-full border border-slate-200 text-slate-600 hover:border-blue-400 hover:text-blue-700 whitespace-nowrap transition-colors">
+          className="px-3 py-1 text-xs rounded-full border border-white/20 text-white/60 hover:border-blue-400 hover:text-blue-400 whitespace-nowrap transition-colors">
           {p.name}
         </button>
       ))}
       {custom.map((p, i) => (
         <div key={i} className="flex items-center gap-0.5 group">
           <button onClick={() => apply(p.filters)}
-            className="px-3 py-1 text-xs rounded-full border border-blue-200 text-blue-700 hover:bg-blue-50 whitespace-nowrap">
+            className="px-3 py-1 text-xs rounded-full border border-blue-400/40 text-blue-400 hover:bg-blue-400/10 whitespace-nowrap transition-colors">
             {p.name}
           </button>
           <button onClick={() => deletePreset(i)}
-            className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-500 text-xs px-1">
+            className="opacity-0 group-hover:opacity-100 text-white/30 hover:text-red-400 text-xs px-1 transition-all">
             ×
           </button>
         </div>
@@ -69,13 +69,13 @@ export function PresetBar({ currentFilters, defaultFilters, onApply }: Props) {
         <div className="flex items-center gap-1 shrink-0">
           <input autoFocus value={name} onChange={(e) => setName(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && savePreset()}
-            placeholder="Preset name" className="px-2 py-1 text-xs border border-slate-200 rounded-lg w-28 focus:outline-none focus:ring-1 focus:ring-blue-500" />
-          <button onClick={savePreset} className="px-2 py-1 text-xs bg-blue-600 text-white rounded-lg">Save</button>
-          <button onClick={() => setSaving(false)} className="px-2 py-1 text-xs text-slate-400 hover:text-slate-600">Cancel</button>
+            placeholder="Preset name" className="px-2 py-1 text-xs border border-white/20 bg-white/10 text-white/90 placeholder-white/30 rounded-lg w-28 focus:outline-none focus:ring-1 focus:ring-blue-400" />
+          <button onClick={savePreset} className="px-2 py-1 text-xs bg-blue-500 text-white rounded-lg hover:bg-blue-400 transition-colors">Save</button>
+          <button onClick={() => setSaving(false)} className="px-2 py-1 text-xs text-white/40 hover:text-white/60 transition-colors">Cancel</button>
         </div>
       ) : (
         <button onClick={() => setSaving(true)}
-          className="px-3 py-1 text-xs text-slate-400 hover:text-blue-600 whitespace-nowrap">
+          className="px-3 py-1 text-xs text-white/30 hover:text-blue-400 whitespace-nowrap transition-colors">
           + Save current
         </button>
       )}

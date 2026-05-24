@@ -8,7 +8,7 @@ import type { Stock } from "../types/stock";
 
 const col = createColumnHelper<Stock>();
 
-const dash = <span className="text-slate-300">—</span>;
+const dash = <span className="text-white/20">—</span>;
 
 function fmt(v: number | null | undefined, d = 1) {
   return v != null ? v.toFixed(d) : dash;
@@ -16,7 +16,7 @@ function fmt(v: number | null | undefined, d = 1) {
 
 function pctCell(v: number | null | undefined) {
   if (v == null) return dash;
-  const cls = v > 0 ? "text-emerald-600" : v < 0 ? "text-red-500" : "text-slate-400";
+  const cls = v > 0 ? "text-emerald-400" : v < 0 ? "text-red-400" : "text-white/30";
   return <span className={cls}>{v.toFixed(1)}%</span>;
 }
 
@@ -30,13 +30,13 @@ function capCell(v: number | null | undefined) {
 const COLUMNS = [
   col.accessor("symbol", {
     header: "Symbol",
-    cell: (i) => <span className="font-semibold text-slate-900">{i.getValue()}</span>,
+    cell: (i) => <span className="font-semibold text-white/90">{i.getValue()}</span>,
   }),
   col.accessor("company_name", {
     header: "Company",
     cell: (i) => (
       <span
-        className="text-slate-600 text-sm truncate max-w-[150px] block"
+        className="text-white/60 text-sm truncate max-w-[150px] block"
         title={i.getValue() ?? ""}
       >
         {i.getValue() ?? dash}
@@ -47,7 +47,7 @@ const COLUMNS = [
     header: "Sector",
     cell: (i) =>
       i.getValue() ? (
-        <span className="px-2 py-0.5 text-xs rounded-full bg-slate-100 text-slate-600 whitespace-nowrap">
+        <span className="px-2 py-0.5 text-xs rounded-full bg-white/10 text-white/60 whitespace-nowrap border border-white/10">
           {i.getValue()}
         </span>
       ) : (
@@ -56,7 +56,7 @@ const COLUMNS = [
   }),
   col.accessor("price", {
     header: "Price",
-    cell: (i) => (i.getValue() != null ? `₹${i.getValue()!.toFixed(2)}` : dash),
+    cell: (i) => i.getValue() != null ? <span className="text-white/80">₹{i.getValue()!.toFixed(2)}</span> : dash,
   }),
   col.accessor("pe_ratio", { header: "P/E", cell: (i) => fmt(i.getValue()) }),
   col.accessor("roe", { header: "ROE", cell: (i) => pctCell(i.getValue()) }),
@@ -97,25 +97,25 @@ export function StockTable({
 
   return (
     <div className="space-y-3">
-      <p className="text-sm text-slate-500 px-1">
+      <p className="text-sm text-white/40 px-1">
         {isLoading ? "Loading…" : `${total.toLocaleString()} stocks`}
       </p>
 
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+      <div className="bg-white/10 backdrop-blur-md rounded-xl border border-white/10 overflow-hidden shadow-xl shadow-black/20">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               {table.getHeaderGroups().map((hg) => (
-                <tr key={hg.id} className="bg-slate-50 border-b border-slate-200">
+                <tr key={hg.id} className="bg-white/5 border-b border-white/10">
                   {hg.headers.map((h) => (
                     <th
                       key={h.id}
                       onClick={() => onSort(h.column.id)}
-                      className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wide cursor-pointer hover:text-slate-700 select-none whitespace-nowrap"
+                      className="px-4 py-3 text-left text-xs font-semibold text-white/40 uppercase tracking-wide cursor-pointer hover:text-white/70 select-none whitespace-nowrap transition-colors"
                     >
                       {flexRender(h.column.columnDef.header, h.getContext())}
                       {sortBy === h.column.id && (
-                        <span className="ml-1 text-blue-500">
+                        <span className="ml-1 text-blue-400">
                           {sortDir === "desc" ? "↓" : "↑"}
                         </span>
                       )}
@@ -127,10 +127,10 @@ export function StockTable({
             <tbody>
               {isLoading
                 ? Array.from({ length: 8 }).map((_, i) => (
-                    <tr key={i} className="border-b border-slate-100">
+                    <tr key={i} className="border-b border-white/5">
                       {COLUMNS.map((_, j) => (
                         <td key={j} className="px-4 py-3">
-                          <div className="h-4 bg-slate-100 rounded animate-pulse" />
+                          <div className="h-4 bg-white/10 rounded animate-pulse" />
                         </td>
                       ))}
                     </tr>
@@ -138,7 +138,7 @@ export function StockTable({
                 : stocks.length === 0
                 ? (
                   <tr>
-                    <td colSpan={COLUMNS.length} className="px-4 py-16 text-center text-slate-400 text-sm">
+                    <td colSpan={COLUMNS.length} className="px-4 py-16 text-center text-white/30 text-sm">
                       No stocks match your filters
                     </td>
                   </tr>
@@ -147,7 +147,7 @@ export function StockTable({
                     <tr
                       key={row.id}
                       onClick={() => onRowClick(row.original.symbol)}
-                      className="border-b border-slate-100 hover:bg-blue-50 cursor-pointer transition-colors"
+                      className="border-b border-white/5 hover:bg-white/10 cursor-pointer transition-colors"
                     >
                       {row.getVisibleCells().map((cell) => (
                         <td key={cell.id} className="px-4 py-3 whitespace-nowrap">
@@ -163,14 +163,14 @@ export function StockTable({
 
       {totalPages > 1 && (
         <div className="flex items-center justify-between px-1">
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-white/40">
             Page {page} of {totalPages}
           </p>
           <div className="flex gap-1">
             <button
               onClick={() => onPage(page - 1)}
               disabled={page === 1}
-              className="px-3 py-1.5 text-sm rounded-lg border border-slate-200 disabled:opacity-30 hover:bg-slate-50"
+              className="px-3 py-1.5 text-sm rounded-lg border border-white/20 bg-white/5 text-white/70 disabled:opacity-30 hover:bg-white/10 transition-colors"
             >
               ←
             </button>
@@ -181,10 +181,10 @@ export function StockTable({
                 <button
                   key={p}
                   onClick={() => onPage(p)}
-                  className={`px-3 py-1.5 text-sm rounded-lg border ${
+                  className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
                     p === page
-                      ? "bg-blue-600 text-white border-blue-600"
-                      : "border-slate-200 hover:bg-slate-50"
+                      ? "bg-blue-500 text-white border-blue-500"
+                      : "border-white/20 bg-white/5 text-white/70 hover:bg-white/10"
                   }`}
                 >
                   {p}
@@ -194,7 +194,7 @@ export function StockTable({
             <button
               onClick={() => onPage(page + 1)}
               disabled={page === totalPages}
-              className="px-3 py-1.5 text-sm rounded-lg border border-slate-200 disabled:opacity-30 hover:bg-slate-50"
+              className="px-3 py-1.5 text-sm rounded-lg border border-white/20 bg-white/5 text-white/70 disabled:opacity-30 hover:bg-white/10 transition-colors"
             >
               →
             </button>
