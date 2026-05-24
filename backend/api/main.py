@@ -59,6 +59,8 @@ async def test_pipeline():
         stocks_data = await loop.run_in_executor(None, fetch_all, symbols)
 
         def clean(v):
+            if hasattr(v, "item"):
+                v = v.item()
             if isinstance(v, float) and (math.isnan(v) or math.isinf(v)):
                 return None
             return v

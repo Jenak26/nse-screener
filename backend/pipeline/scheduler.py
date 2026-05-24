@@ -12,7 +12,9 @@ import math
 
 
 def _clean(val):
-    """Replace NaN/Inf with None — PostgreSQL rejects IEEE special floats."""
+    """Convert numpy scalars to Python natives; replace NaN/Inf with None."""
+    if hasattr(val, "item"):
+        val = val.item()  # np.float64 / np.int64 → Python float/int
     if isinstance(val, float) and (math.isnan(val) or math.isinf(val)):
         return None
     return val
