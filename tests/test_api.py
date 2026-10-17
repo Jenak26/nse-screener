@@ -47,7 +47,7 @@ def seed():
 
 @pytest.fixture(scope="module")
 def client():
-    with patch("backend.api.main.create_scheduler", return_value=MagicMock()):
+    with patch("backend.api.main.create_scheduler", return_value=MagicMock()),          patch("backend.api.main._bootstrap", return_value=False):
         with TestClient(app) as c:
             yield c
 
@@ -102,3 +102,28 @@ def test_get_meta(client):
     body = resp.json()
     assert body["total_stocks"] == 2
     assert body["pipeline_status"] == "ok"
+
+
+def test_admin_pipeline_rejects_missing_token(client):
+    with patch("backend.api.main.settings.admin_token", "s3cret"):
+        assert client.post("/api/admin/run-pipeline").status_code == 401
+        assert client.post("/api/admin/run-pipeline", headers={"X-Admin-Token": "wrong"}).status_code == 401
+
+
+def test_admin_pipeline_disabled_when_token_unset(client):
+    with patch("backend.api.main.settings.admin_token", ""):
+        assert client.post("/api/admin/run-pipeline", headers={"X-Admin-Token": ""}).status_code == 401
+
+
+def test_admin_pipeline_accepts_valid_token(client):
+    with patch("backend.api.main.settings.admin_token", "s3cret"),          patch("backend.api.main.run_pipeline", new=MagicMock(return_value=_noop())):
+        resp = client.post("/api/admin/run-pipeline", headers={"X-Admin-Token": "s3cret"})
+    assert resp.status_code == 200
+
+
+async def _noop():
+    return None
+
+
+def test_debug_pipeline_endpoint_removed(client):
+    assert client.get("/api/admin/test-pipeline").status_code == 404

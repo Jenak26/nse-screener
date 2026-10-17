@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { FilterPanel } from "./components/FilterPanel";
 import { StockTable } from "./components/StockTable";
@@ -8,7 +8,50 @@ import { PresetBar } from "./components/PresetBar";
 import { useMeta, useSectors, useStocks } from "./hooks/useStocks";
 import type { Filters } from "./types/stock";
 
-const queryClient = new QueryClient();
+// Free-tier backends sleep when idle; keep retrying long enough (~45s) to ride out a cold start.
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 6,
+      retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 10_000),
+    },
+  },
+});
+
+function ServerStatusBanner({ isLoading, isError, onRetry }: {
+  isLoading: boolean;
+  isError: boolean;
+  onRetry: () => void;
+}) {
+  const [slow, setSlow] = useState(false);
+  useEffect(() => {
+    if (!isLoading) return;
+    const t = setTimeout(() => setSlow(true), 3000);
+    return () => {
+      clearTimeout(t);
+      setSlow(false);
+    };
+  }, [isLoading]);
+
+  if (isError) {
+    return (
+      <div role="alert" className="mx-4 mt-3 flex items-center gap-3 rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-2.5 text-xs text-red-200">
+        <span>Couldn't reach the data server.</span>
+        <button onClick={onRetry} className="ml-auto rounded-lg bg-white/10 px-3 py-1 font-medium text-white hover:bg-white/20">
+          Retry
+        </button>
+      </div>
+    );
+  }
+  if (slow && isLoading) {
+    return (
+      <div role="status" className="mx-4 mt-3 rounded-xl border border-amber-400/20 bg-amber-500/10 px-4 py-2.5 text-xs text-amber-200">
+        Waking up the data server — this can take up to ~30 seconds on free hosting.
+      </div>
+    );
+  }
+  return null;
+}
 
 const DEFAULT_FILTERS: Filters = {
   sector: "",
@@ -28,7 +71,7 @@ function Screener() {
   const [selected, setSelected] = useState<string | null>(null);
   const [tab, setTab] = useState<"screener" | "sectors">("screener");
 
-  const { data, isLoading } = useStocks(filters, sortBy, sortDir, page);
+  const { data, isLoading, isError, refetch } = useStocks(filters, sortBy, sortDir, page);
   const { data: sectors } = useSectors();
   const { data: meta } = useMeta();
 
@@ -80,6 +123,8 @@ function Screener() {
           </div>
         </header>
       </div>
+
+      <ServerStatusBanner isLoading={isLoading} isError={isError && !data} onRetry={() => refetch()} />
 
       {tab === "screener" && (
         <PresetBar

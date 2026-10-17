@@ -1,14 +1,20 @@
 import asyncio
 import logging
+import math
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 
+from backend.database.models import utcnow
+
 logger = logging.getLogger(__name__)
 
+SNAPSHOT_METRICS = ["pe_ratio", "roe", "revenue_growth_yoy", "debt_to_equity"]
 
-import math
+# A full run makes ~500 Yahoo requests; never let two overlap (cron + manual trigger).
+_pipeline_lock = asyncio.Lock()
 
 
 def _clean(val):
@@ -20,64 +26,85 @@ def _clean(val):
     return val
 
 
-async def run_pipeline() -> None:
-    from backend.config.settings import settings
-    from backend.database.db import SessionLocal
+def quarter_label(now: datetime) -> str:
+    """Indian fiscal quarter label, e.g. October 2026 -> "Q3FY27"."""
+    fy = now.year + 1 if now.month >= 4 else now.year
+    q = (now.month - 4) % 12 // 3 + 1
+    return f"Q{q}FY{str(fy)[2:]}"
+
+
+def is_running() -> bool:
+    return _pipeline_lock.locked()
+
+
+def write_snapshot(session, stocks_data: list[dict], now: datetime) -> None:
+    """Upsert stock rows and this quarter's history points. Caller commits."""
     from backend.database.models import MetricHistory, Stock
-    from backend.pipeline.fetcher import fetch_all, load_symbols
-    from backend.pipeline.nse_holdings import fetch_promoter_holdings
-    from datetime import datetime as _dt
 
-    logger.info("Daily pipeline started")
-    try:
-        loop = asyncio.get_running_loop()
+    label = quarter_label(now)
+    existing_points = {
+        (h.symbol, h.metric): h
+        for h in session.query(MetricHistory).filter(MetricHistory.quarter == label)
+    }
 
-        symbols = await loop.run_in_executor(None, load_symbols, settings.stock_universe_path)
-        promoter_map = await loop.run_in_executor(None, fetch_promoter_holdings)
-        stocks_data = await loop.run_in_executor(None, fetch_all, symbols)
+    for data in stocks_data:
+        cleaned = {k: _clean(v) for k, v in data.items()}
+        session.merge(Stock(**cleaned))
 
-        now = _dt.utcnow()
-        quarter_map = {1: "Q3", 2: "Q3", 3: "Q3", 4: "Q4", 5: "Q4", 6: "Q4",
-                       7: "Q1", 8: "Q1", 9: "Q1", 10: "Q2", 11: "Q2", 12: "Q2"}
-        fy = now.year + 1 if now.month >= 4 else now.year
-        quarter_label = f"{quarter_map[now.month]}FY{str(fy)[2:]}"
-        snapshot_metrics = ["pe_ratio", "roe", "revenue_growth_yoy", "debt_to_equity"]
+        for metric in SNAPSHOT_METRICS:
+            val = cleaned.get(metric)
+            if val is None:
+                continue
+            point = existing_points.get((cleaned["symbol"], metric))
+            if point:
+                point.value, point.recorded_at = val, now
+            else:
+                session.add(MetricHistory(symbol=cleaned["symbol"], metric=metric,
+                                          value=val, quarter=label, recorded_at=now))
 
-        session = SessionLocal()
+
+async def run_pipeline() -> None:
+    if _pipeline_lock.locked():
+        logger.info("Pipeline already running; skipping")
+        return
+
+    async with _pipeline_lock:
+        from backend.config.settings import settings
+        from backend.database.db import SessionLocal
+        from backend.pipeline.fetcher import fetch_all, load_symbols
+        from backend.pipeline.nse_holdings import fetch_promoter_holdings
+
+        logger.info("Daily pipeline started")
         try:
-            for data in stocks_data:
-                data["promoter_holding"] = promoter_map.get(data["symbol"])
-                # Sanitize all float values before writing to PostgreSQL
-                cleaned = {k: _clean(v) for k, v in data.items()}
-                existing = session.get(Stock, cleaned["symbol"])
-                if existing:
-                    for k, v in cleaned.items():
-                        setattr(existing, k, v)
-                else:
-                    session.add(Stock(**cleaned))
+            loop = asyncio.get_running_loop()
+            symbols = await loop.run_in_executor(None, load_symbols, settings.stock_universe_path)
+            promoter_map = await loop.run_in_executor(None, fetch_promoter_holdings)
+            stocks_data = await loop.run_in_executor(None, fetch_all, symbols)
+
+            # Yahoo throttles datacenter IPs; a mostly-empty fetch must not wipe good data.
+            if len(stocks_data) < len(symbols) * 0.5:
+                logger.error(f"Fetched only {len(stocks_data)}/{len(symbols)} stocks; keeping existing data")
+                return
 
             for data in stocks_data:
-                for metric in snapshot_metrics:
-                    val = _clean(data.get(metric))
-                    if val is not None:
-                        session.add(MetricHistory(
-                            symbol=data["symbol"],
-                            metric=metric,
-                            value=val,
-                            quarter=quarter_label,
-                            recorded_at=_dt.utcnow(),
-                        ))
+                data["promoter_holding"] = promoter_map.get(data["symbol"], data.get("promoter_holding"))
 
-            session.commit()
-            logger.info(f"Pipeline complete: upserted {len(stocks_data)} stocks")
+            session = SessionLocal()
+            try:
+                write_snapshot(session, stocks_data, utcnow())
+                session.commit()
+                logger.info(f"Pipeline complete: upserted {len(stocks_data)} stocks")
+            except Exception:
+                logger.exception("Pipeline DB write failed — rolling back")
+                session.rollback()
+            finally:
+                session.close()
         except Exception:
-            logger.exception("Pipeline DB write failed — rolling back")
-            session.rollback()
-            raise
-        finally:
-            session.close()
-    except Exception:
-        logger.exception("Pipeline failed")
+            logger.exception("Pipeline failed")
+
+
+def needs_refresh(last_updated: datetime | None, max_age: timedelta = timedelta(hours=24)) -> bool:
+    return last_updated is None or utcnow() - last_updated > max_age
 
 
 def create_scheduler(hour: int = 6, minute: int = 30) -> AsyncIOScheduler:

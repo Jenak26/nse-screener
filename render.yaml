@@ -1,0 +1,25 @@
+# Render Blueprint: Dashboard -> New -> Blueprint -> pick this repo.
+services:
+  - type: web
+    name: nse-screener-api
+    runtime: python
+    plan: free
+    region: singapore
+    branch: master
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn backend.api.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.7
+      - key: CORS_ORIGINS
+        value: https://nse-screener-rose.vercel.app,http://localhost:5173
+      # The disk is wiped on every restart: boot from data/seed_*.csv, which the
+      # refresh-data GitHub Action updates daily.
+      - key: REFRESH_ON_STARTUP
+        value: "false"
+      - key: SCHEDULER_ENABLED
+        value: "false"
+      - key: ADMIN_TOKEN
+        generateValue: true

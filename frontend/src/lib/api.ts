@@ -1,6 +1,8 @@
 import type { Filters, Meta, Sector, StockDetail, StocksResponse } from "../types/stock";
 
-const BASE = (import.meta.env.VITE_API_URL as string) ?? "http://localhost:8000";
+// Same-origin by default: vercel.json proxies /api/* to the backend in production and
+// vite.config.ts proxies it to localhost:8000 in dev. VITE_API_BASE overrides both.
+const BASE = (import.meta.env.VITE_API_BASE as string | undefined) ?? "";
 
 async function get<T>(path: string): Promise<T> {
   const res = await fetch(`${BASE}${path}`);

@@ -1,0 +1,40 @@
+name: Refresh data snapshot
+
+# Runs the yfinance pipeline once a day and commits data/seed_*.csv.
+# The push redeploys the Render backend, which boots from that snapshot.
+on:
+  schedule:
+    - cron: "0 1 * * 1-6"   # 06:30 IST, after each trading day
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh-data
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Run pipeline and export snapshot
+        run: python -m backend.pipeline.seed refresh
+      - name: Commit snapshot if it changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/seed_stocks.csv data/seed_history.csv
+          if git diff --cached --quiet; then
+            echo "No data changes"
+          else
+            git commit -m "data: refresh NIFTY 500 snapshot $(date -u +%F)"
+            git push
+          fi

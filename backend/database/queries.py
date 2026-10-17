@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Optional
 
 from sqlalchemy import select, func
@@ -45,13 +46,22 @@ def get_stocks(
     if promoter_min is not None:
         q = q.where(Stock.promoter_holding >= promoter_min)
 
-    total = session.scalar(select(func.count()).select_from(q.subquery())) or 0
+    # COUNT(*) OVER () rides along with the page rows, so filtering, counting and
+    # paginating cost a single database round-trip instead of a count query + page query.
+    filtered = q
+    q = q.add_columns(func.count().over().label("total"))
 
     sort_col = getattr(Stock, sort_by)
     order = sort_col.desc().nulls_last() if sort_dir == "desc" else sort_col.asc().nulls_last()
-    q = q.order_by(order).offset((page - 1) * page_size).limit(page_size)
+    q = q.order_by(order, Stock.symbol).offset((page - 1) * page_size).limit(page_size)
 
-    return list(session.scalars(q).all()), total
+    rows = session.execute(q).all()
+    if rows:
+        return [r[0] for r in rows], rows[0].total
+    if page > 1:
+        # Past the last page the window count has no row to ride on; fall back once.
+        return [], session.scalar(select(func.count()).select_from(filtered.subquery())) or 0
+    return [], 0
 
 
 def get_stock_by_symbol(session: Session, symbol: str) -> Optional[Stock]:
@@ -108,8 +118,12 @@ def get_sector_percentiles(session: Session, symbol: str) -> dict:
     }
 
 
+def get_last_updated_dt(session: Session) -> Optional[datetime]:
+    return session.scalar(select(func.max(Stock.updated_at)))
+
+
 def get_last_updated(session: Session) -> Optional[str]:
-    result = session.scalar(select(func.max(Stock.updated_at)))
+    result = get_last_updated_dt(session)
     return result.isoformat() if result else None
 
 
@@ -121,13 +135,21 @@ def get_distinct_sectors(session: Session) -> list[str]:
 
 def get_metric_history(session: Session, symbol: str, metrics: list[str]) -> dict[str, list[dict]]:
     """Return {metric: [{quarter, value}, ...]} sorted oldest-first, last 8 quarters."""
-    result = {}
-    for metric in metrics:
-        rows = list(session.execute(
-            select(MetricHistory.quarter, MetricHistory.value)
-            .where(MetricHistory.symbol == symbol, MetricHistory.metric == metric)
-            .order_by(MetricHistory.recorded_at.asc())
-            .limit(8)
-        ).all())
-        result[metric] = [{"quarter": r.quarter, "value": r.value} for r in rows]
+    # Rank each metric's points newest-first in one query, keep the latest 8 per metric.
+    rn = func.row_number().over(
+        partition_by=MetricHistory.metric, order_by=MetricHistory.recorded_at.desc()
+    ).label("rn")
+    ranked = (
+        select(MetricHistory.metric, MetricHistory.quarter, MetricHistory.value,
+               MetricHistory.recorded_at, rn)
+        .where(MetricHistory.symbol == symbol, MetricHistory.metric.in_(metrics))
+        .subquery()
+    )
+    rows = session.execute(
+        select(ranked).where(ranked.c.rn <= 8).order_by(ranked.c.metric, ranked.c.recorded_at.asc())
+    ).all()
+
+    result: dict[str, list[dict]] = {m: [] for m in metrics}
+    for r in rows:
+        result[r.metric].append({"quarter": r.quarter, "value": r.value})
     return result

@@ -1,10 +1,11 @@
 import logging
 import time
-from datetime import datetime
 from typing import Optional
 
 import pandas as pd
 import yfinance as yf
+
+from backend.database.models import utcnow
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +31,9 @@ def _fetch_one(symbol: str) -> Optional[dict]:
 
         mc = info.get("marketCap")
         roe_raw = info.get("returnOnEquity")
+        # Yahoo's insider stake for NSE listings tracks the promoter group's holding;
+        # used when NSE's shareholding file is unavailable.
+        insiders = info.get("heldPercentInsiders")
 
         return {
             "symbol": symbol,
@@ -40,10 +44,11 @@ def _fetch_one(symbol: str) -> Optional[dict]:
             "roe": round(roe_raw * 100, 2) if roe_raw is not None else None,
             "debt_to_equity": info.get("debtToEquity"),
             "revenue_growth_yoy": rev_growth,
+            "promoter_holding": round(insiders * 100, 2) if insiders is not None else None,
             "current_ratio": info.get("currentRatio"),
             "price": info.get("currentPrice") or info.get("regularMarketPrice"),
             "fifty_two_week_high": info.get("fiftyTwoWeekHigh"),
-            "updated_at": datetime.utcnow(),
+            "updated_at": utcnow(),
         }
     except Exception as e:
         logger.warning(f"Failed to fetch {symbol}: {e}")

@@ -4,10 +4,10 @@
 [![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://react.dev)
 [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
 [![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org)
+[![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-D71F00?style=for-the-badge&logo=sqlalchemy&logoColor=white)](https://www.sqlalchemy.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
-A high-performance, visually stunning fundamental stock screener for India's NIFTY 500 stocks. Filter, sort, and analyze the market in real-time with sub-500ms response times. Positioned as a modern, clean, and ad-free alternative to Screener.in.
+A high-performance, visually stunning fundamental stock screener for India's NIFTY 500 stocks. Filter, sort, and analyze the market in real time: every filter query is served in ~3 ms (p50, server-side). Positioned as a modern, clean, and ad-free alternative to Screener.in.
 
 **Live Application → [nse-screener-rose.vercel.app](https://nse-screener-rose.vercel.app)**  
 *Data updates automatically every morning at 6:30 AM IST.*
@@ -28,13 +28,12 @@ The most important design decision in this project is the strict separation betw
 
 ```mermaid
 flowchart TD
-    A["NIFTY 500 Stocks List (data/nifty500.csv)"] --> B("Daily Pipeline (6:30 AM IST via APScheduler)")
+    A["NIFTY 500 Stocks List (data/nifty500.csv)"] --> B("Daily Pipeline (GitHub Action, 6:30 AM IST)")
     B --> C1("yfinance API (Batched calls, 1s delay)")
-    B --> C2("NSE Shareholding Disclosures (CSV Parser)")
-    C1 -->|P/E, Market Cap, ROE, D/E, Revenue Growth| D[("PostgreSQL / SQLite Database")]
-    C2 -->|Promoter Holding %| D
-    D --> E("FastAPI Backend (Railway)")
-    E --> F("React Frontend (Vercel)")
+    C1 -->|P/E, Market Cap, ROE, D/E, Revenue Growth, Promoter/Insider %| S["Committed snapshot (data/seed_*.csv)"]
+    S -->|push triggers redeploy| D[("SQLite (or PostgreSQL via DATABASE_URL)")]
+    D --> E("FastAPI Backend (Render)")
+    E --> F("React Frontend (Vercel, /api proxied to backend)")
     F --> F1("TanStack Table v8 (Data Grid)")
     F --> F2("TanStack Query v5 (Caching)")
     F --> F3("Recharts (Sparklines)")
@@ -45,7 +44,9 @@ flowchart TD
 ```
 
 > [!IMPORTANT]
-> **Performance Guarantee:** Any filter query — no matter how complex — is compiled into a single SQL `SELECT` statement with chained `WHERE` clauses. Since the database tables are pre-populated, API response times are consistently under **500ms**.
+> **One round-trip per request:** any filter combination compiles into a single SQL `SELECT` with chained `WHERE` clauses, and the total match count rides along as a `COUNT(*) OVER ()` window column, so filtering, counting and pagination never take a second query. Indexes cover the sector filter, the default market-cap sort and the history lookup. Measured locally over 100 requests per endpoint: **p50 ≈ 2–3 ms, p95 < 7 ms** server-side.
+
+> **Data freshness on free hosting:** Render's free tier wipes the disk on every restart. Instead of refetching 500 tickers on each boot, a daily GitHub Action runs the pipeline and commits `data/seed_stocks.csv` + `data/seed_history.csv`; the push redeploys the API, which seeds itself from that snapshot in under a second. A run that comes back mostly empty (Yahoo throttling) never overwrites good data.
 
 ---
 
@@ -76,7 +77,7 @@ flowchart TD
 | **SQLAlchemy 2** | Type-safe ORM utilizing a composable query builder (filters chain as SQL `WHERE` clauses). |
 | **APScheduler** | Async scheduler running inside the FastAPI process — no extra workers or Redis required. |
 | **yfinance** | Light and reliable Yahoo Finance scraper to acquire stock market data. |
-| **pytest + httpx** | 23 integration tests utilizing an in-memory SQLite database (no mocks). |
+| **pytest + httpx** | 36 tests against an in-memory SQLite database, including a single-round-trip assertion on the filter query. |
 
 ### Frontend
 | Tool | Rationale |
@@ -116,18 +117,18 @@ flowchart TD
    uvicorn backend.api.main:app --reload --port 8000
    ```
 
-4. **Seed initial market data:**
-   *(Note: Fetching data for all 500 stocks sequentially takes about 15 minutes due to yfinance API rate-limiting.)*
+4. **Market data loads automatically** from the committed snapshot on first start. To pull fresh data (~10 minutes for 500 stocks because of yfinance rate limits):
    ```bash
-   curl -X POST http://localhost:8000/api/admin/run-pipeline
+   python -m backend.pipeline.seed refresh          # updates data/seed_*.csv
+   # or, against a running server (set ADMIN_TOKEN in .env first):
+   curl -X POST -H "X-Admin-Token: $ADMIN_TOKEN" http://localhost:8000/api/admin/run-pipeline
    ```
 
 5. **Install and run the React frontend:**
    *(Open a new terminal)*
    ```bash
    cd frontend
-   cp .env.example .env        # Configures VITE_API_URL=http://localhost:8000
-   npm install
+   npm install                 # Vite proxies /api to http://127.0.0.1:8000
    npm run dev
    ```
 
@@ -152,8 +153,9 @@ nse-screener/
 │   │   └── queries.py           # SQL filter queries, percentile ranks, history helpers
 │   ├── pipeline/
 │   │   ├── fetcher.py           # yfinance scraper with batching & recovery
-│   │   ├── nse_holdings.py      # NSE Shareholding CSV disclosure parser
-│   │   └── scheduler.py         # Daily Scheduler & snapshots job
+│   │   ├── nse_holdings.py      # NSE Shareholding CSV disclosure parser (falls back to Yahoo insider %)
+│   │   ├── scheduler.py         # Pipeline run, per-quarter history upsert, scheduler
+│   │   └── seed.py              # Snapshot seed/export + `refresh` CLI used by the daily Action
 │   └── config/
 │       └── settings.py          # pydantic-settings environment variables loader
 ├── frontend/
@@ -168,17 +170,21 @@ nse-screener/
 │       ├── hooks/
 │       │   └── useStocks.ts     # TanStack Query custom hooks
 │       ├── lib/
-│       │   └── api.ts           # Axios clients and API paths
+│       │   └── api.ts           # fetch client (same-origin /api)
 │       ├── types/
 │       │   └── stock.ts         # TypeScript schema types
 │       └── App.tsx              # Component orchestration and tab states
 ├── data/
-│   └── nifty500.csv             # Official list of 500 NIFTY symbols
+│   ├── nifty500.csv             # Official list of 500 NIFTY symbols
+│   ├── seed_stocks.csv          # Daily snapshot the API boots from
+│   └── seed_history.csv         # Quarterly metric history (sparklines)
 ├── tests/
 │   ├── conftest.py              # Pytest fixtures and mock database setup
 │   ├── test_api.py              # Route testing
 │   └── test_queries.py          # Database queries validation
-├── railway.toml                 # Railway production deploy settings
+├── .github/workflows/           # tests, daily data refresh, keep-demos-warm pinger
+├── render.yaml                  # Render Blueprint (free web service)
+├── railway.toml                 # Alternative: Railway deploy with PostgreSQL
 └── requirements.txt             # Backend dependencies
 ```
 
@@ -186,23 +192,16 @@ nse-screener/
 
 ## 🚀 Deploying to Production
 
-### 1. Backend & DB (Railway)
-1. Fork this repository on GitHub.
-2. Link your repository inside your Railway dashboard.
-3. Provision a **PostgreSQL** instance in the same Railway project.
-4. Set the following Environment Variables on the Backend Service:
-   * `DATABASE_URL`: Retrieve the connection string from your PostgreSQL variables.
-   * `CORS_ORIGINS`: Set to your local dev URL and production domain (e.g., `http://localhost:5173,https://your-app.vercel.app`).
-   * `STOCK_UNIVERSE_PATH`: `data/nifty500.csv`
-5. Generate a public Domain (Settings -> Networking).
-6. Trigger the pipeline once using the `/api/admin/run-pipeline` endpoint to pre-seed the database.
+### 1. Backend (Render, free)
+1. Render Dashboard → **New → Blueprint** → select this repository. `render.yaml` configures everything (Python 3.12, health check, a generated `ADMIN_TOKEN`).
+2. The service boots from the committed snapshot; no manual seeding needed.
+3. The **Refresh data snapshot** Action keeps the data current, and **Keep demos warm** pings the API every 10 minutes during the day so visitors don't hit a cold start.
+
+> Prefer PostgreSQL? Set `DATABASE_URL` to a Postgres connection string (e.g. Railway, using `railway.toml`). Tables and indexes are created automatically on startup.
 
 ### 2. Frontend (Vercel)
-1. Import your forked repository on Vercel.
-2. Set the root directory to `frontend`.
-3. Add the following Environment Variable:
-   * `VITE_API_URL`: Set to your backend's public domain URL.
-4. Deploy the application.
+1. Import the repository on Vercel and set the root directory to `frontend`.
+2. `frontend/vercel.json` proxies `/api/*` to the backend, so no environment variables or CORS setup are needed. Change the rewrite destination if your backend URL differs.
 
 ---
 

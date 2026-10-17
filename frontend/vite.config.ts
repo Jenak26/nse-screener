@@ -4,4 +4,8 @@ import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  server: {
+    // Mirrors the /api rewrite in vercel.json so the app is same-origin in dev too.
+    proxy: { '/api': 'http://127.0.0.1:8000' },
+  },
 })
