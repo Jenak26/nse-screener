@@ -17,7 +17,7 @@ jobs:
       fail-fast: false
       matrix:
         url:
-          - https://nse-screener-api.onrender.com/health
+          - https://nse-screener-api-yz18.onrender.com/health
           - https://nse-screener-rose.vercel.app/api/meta
           - https://raftkv.onrender.com/api/state
           - https://jenak26-vol-surface-engine.hf.space/

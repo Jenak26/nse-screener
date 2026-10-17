@@ -5,7 +5,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://nse-screener-api.onrender.com/api/:path*"
+      "destination": "https://nse-screener-api-yz18.onrender.com/api/:path*"
     }
   ],
   "ignoreCommand": "git diff --quiet HEAD^ HEAD -- ."
