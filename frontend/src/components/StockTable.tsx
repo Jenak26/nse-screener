@@ -21,8 +21,10 @@ const dash = <span className="text-slate-600">—</span>;
 
 function signed(v: number | null | undefined) {
   if (v == null) return dash;
-  const cls = v > 0 ? "text-emerald-400" : v < 0 ? "text-rose-400" : "text-slate-400";
-  return <span className={cls}>{v > 0 ? "+" : ""}{v.toFixed(1)}%</span>;
+  // Round before choosing the sign so -0.04 renders as a neutral 0.0%, not a red -0.0%.
+  const r = Math.round(v * 10) / 10 || 0;
+  const cls = r > 0 ? "text-emerald-400" : r < 0 ? "text-rose-400" : "text-slate-400";
+  return <span className={cls}>{r > 0 ? "+" : ""}{r.toFixed(1)}%</span>;
 }
 
 const plain = (v: string | null, cls = "text-slate-200") => (v == null ? dash : <span className={cls}>{v}</span>);
