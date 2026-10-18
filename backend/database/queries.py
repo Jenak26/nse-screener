@@ -26,11 +26,15 @@ def get_stocks(
     sort_dir: str = "desc",
     page: int = 1,
     page_size: int = 20,
+    q_text: Optional[str] = None,
 ) -> tuple[list[Stock], int]:
     if sort_by not in VALID_SORT_COLUMNS:
         sort_by = "market_cap"
 
     q = select(Stock)
+    if q_text and q_text.strip():
+        term = f"%{q_text.strip()}%"
+        q = q.where(Stock.symbol.ilike(term) | Stock.company_name.ilike(term))
     if sector:
         q = q.where(Stock.sector == sector)
     if pe_min is not None:

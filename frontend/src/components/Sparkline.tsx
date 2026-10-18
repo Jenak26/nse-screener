@@ -6,8 +6,8 @@ interface Props { data: MetricPoint[]; color?: string; label: string; suffix?: s
 export function Sparkline({ data, color = "#3b82f6", label, suffix = "" }: Props) {
   if (!data || data.length < 2) return null;
   return (
-    <div className="mt-3 bg-white/5 border border-white/10 rounded-xl p-3">
-      <p className="text-xs font-medium text-white/40 uppercase tracking-wide mb-2">{label} trend</p>
+    <div className="rounded-xl border border-white/[0.07] bg-white/[0.03] p-3">
+      <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">{label} trend</p>
       <ResponsiveContainer width="100%" height={64}>
         <LineChart data={data}>
           <Line
@@ -24,7 +24,7 @@ export function Sparkline({ data, color = "#3b82f6", label, suffix = "" }: Props
           />
         </LineChart>
       </ResponsiveContainer>
-      <div className="flex justify-between text-xs text-white/30 mt-1">
+      <div className="flex justify-between mt-1 text-[11px] text-slate-500">
         <span>{data[0].quarter}</span>
         <span>{data[data.length - 1].quarter}</span>
       </div>

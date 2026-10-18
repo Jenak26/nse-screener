@@ -76,6 +76,14 @@ def test_list_stocks_pe_max_filter(client):
         assert s["pe_ratio"] <= 25
 
 
+def test_list_stocks_search_matches_symbol_or_name(client):
+    by_name = client.get("/api/stocks?q=industries").json()
+    assert [s["symbol"] for s in by_name["stocks"]] == ["RELIANCE"]
+    by_symbol = client.get("/api/stocks?q=tc").json()
+    assert [s["symbol"] for s in by_symbol["stocks"]] == ["TCS"]
+    assert client.get("/api/stocks?q=zzz").json()["total"] == 0
+
+
 def test_get_stock_detail(client):
     resp = client.get("/api/stocks/RELIANCE")
     assert resp.status_code == 200

@@ -33,6 +33,14 @@ def test_fetch_one_returns_dict_on_valid_data():
     assert result["company_name"] == "Reliance Industries"
     assert result["sector"] == "Energy"
     assert result["roe"] == pytest.approx(12.5, 0.1)
+    assert result["debt_to_equity"] == pytest.approx(0.5)
+
+
+def test_fetch_one_derives_roe_when_yahoo_omits_it():
+    info = {"longName": "X", "marketCap": 1e12, "trailingEps": 20.0, "bookValue": 100.0}
+    with patch("yfinance.Ticker", return_value=make_ticker_mock(info)):
+        result = _fetch_one("X")
+    assert result["roe"] == pytest.approx(20.0)
 
 
 def test_fetch_one_returns_none_on_empty_info():

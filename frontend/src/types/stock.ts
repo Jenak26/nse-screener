@@ -51,6 +51,7 @@ export interface Meta {
 }
 
 export interface Filters {
+  q: string;
   sector: string;
   pe_min: string;
   pe_max: string;

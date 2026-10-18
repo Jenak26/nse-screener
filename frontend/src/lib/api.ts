@@ -1,4 +1,5 @@
-import type { Filters, Meta, Sector, StockDetail, StocksResponse } from "../types/stock";
+import type { Filters, Meta, Sector, Stock, StockDetail, StocksResponse } from "../types/stock";
+import { FILTER_KEYS } from "./filters";
 
 // Same-origin by default: vercel.json proxies /api/* to the backend in production and
 // vite.config.ts proxies it to localhost:8000 in dev. VITE_API_BASE overrides both.
@@ -23,18 +24,25 @@ export function fetchStocks(
     page: String(page),
     page_size: String(pageSize),
   });
-  if (filters.sector) p.set("sector", filters.sector);
-  if (filters.pe_min) p.set("pe_min", filters.pe_min);
-  if (filters.pe_max) p.set("pe_max", filters.pe_max);
-  if (filters.roe_min) p.set("roe_min", filters.roe_min);
-  if (filters.debt_max) p.set("debt_max", filters.debt_max);
-  if (filters.revenue_growth_min) p.set("revenue_growth_min", filters.revenue_growth_min);
-  if (filters.promoter_min) p.set("promoter_min", filters.promoter_min);
+  for (const k of FILTER_KEYS) {
+    const v = filters[k].trim();
+    if (v) p.set(k, v);
+  }
   return get<StocksResponse>(`/api/stocks?${p}`);
 }
 
+// Every row matching the current screen, in the API's max page size (used for CSV export).
+export async function fetchAllStocks(filters: Filters, sortBy: string, sortDir: string): Promise<Stock[]> {
+  const all: Stock[] = [];
+  for (let page = 1; ; page++) {
+    const res = await fetchStocks(filters, sortBy, sortDir, page, 100);
+    all.push(...res.stocks);
+    if (all.length >= res.total || res.stocks.length === 0) return all;
+  }
+}
+
 export const fetchStock = (symbol: string): Promise<StockDetail> =>
-  get<StockDetail>(`/api/stocks/${symbol}`);
+  get<StockDetail>(`/api/stocks/${encodeURIComponent(symbol)}`);
 
 export const fetchSectors = (): Promise<Sector[]> => get<Sector[]>("/api/sectors");
 

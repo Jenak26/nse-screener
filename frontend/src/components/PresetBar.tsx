@@ -1,90 +1,104 @@
 import { useState } from "react";
 import type { Filters } from "../types/stock";
+import { BUILT_IN_PRESETS, DEFAULT_FILTERS, presetMatches, type Preset } from "../lib/filters";
 
 const STORAGE_KEY = "nse_screener_presets";
-const BUILT_IN: { name: string; filters: Partial<Filters> }[] = [
-  { name: "High ROE", filters: { roe_min: "20" } },
-  { name: "Low Debt", filters: { debt_max: "0.5" } },
-  { name: "Strong Promoters", filters: { promoter_min: "60" } },
-  { name: "Growth", filters: { revenue_growth_min: "15", roe_min: "15" } },
-  { name: "Value", filters: { pe_max: "15", roe_min: "12" } },
-];
 
-interface Preset { name: string; filters: Partial<Filters>; }
+function loadPresets(): Preset[] {
+  try {
+    const v = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "[]");
+    return Array.isArray(v) ? v : [];
+  } catch {
+    return [];
+  }
+}
+
+function savePresets(p: Preset[]) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(p));
+  } catch {
+    // Storage blocked (private mode); presets just won't persist.
+  }
+}
 
 interface Props {
   currentFilters: Filters;
-  defaultFilters: Filters;
   onApply: (f: Filters) => void;
 }
 
-export function PresetBar({ currentFilters, defaultFilters, onApply }: Props) {
-  const [custom, setCustom] = useState<Preset[]>(() => {
-    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "[]"); }
-    catch { return []; }
-  });
+const chip = "whitespace-nowrap rounded-full border px-3 py-1 text-xs font-medium transition-colors";
+const chipIdle = "border-white/10 text-slate-300 hover:border-white/25 hover:text-white";
+const chipActive = "border-emerald-400/50 bg-emerald-400/15 text-emerald-200";
+
+export function PresetBar({ currentFilters, onApply }: Props) {
+  const [custom, setCustom] = useState<Preset[]>(loadPresets);
   const [saving, setSaving] = useState(false);
   const [name, setName] = useState("");
 
-  const savePreset = () => {
-    if (!name.trim()) return;
-    const next = [...custom, { name: name.trim(), filters: { ...currentFilters } }];
+  const update = (next: Preset[]) => {
     setCustom(next);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    savePresets(next);
+  };
+
+  const save = () => {
+    if (!name.trim()) return;
+    const screen: Partial<Filters> = { ...currentFilters };
+    delete screen.q;
+    update([...custom, { name: name.trim(), filters: screen }]);
     setName("");
     setSaving(false);
   };
 
-  const deletePreset = (i: number) => {
-    const next = custom.filter((_, idx) => idx !== i);
-    setCustom(next);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-  };
-
-  const apply = (filters: Partial<Filters>) =>
-    onApply({ ...defaultFilters, ...filters });
+  // Clicking the active preset again clears it; the search box is left alone either way.
+  const toggle = (p: Partial<Filters>, on: boolean) =>
+    onApply({ ...DEFAULT_FILTERS, q: currentFilters.q, ...(on ? {} : p) });
 
   return (
-    <div className="flex items-center gap-2 px-4 py-2.5 overflow-x-auto">
-      <span className="text-[10px] font-semibold text-white/25 uppercase tracking-[1.5px] shrink-0">Presets</span>
-      <div className="w-px h-3 bg-white/[0.1] shrink-0" />
-      {BUILT_IN.map((p) => (
-        <button key={p.name} onClick={() => apply(p.filters)}
-          className="px-3 py-1 text-xs rounded-full border border-white/[0.1] text-white/45 hover:border-white/25 hover:text-white/75 whitespace-nowrap transition-colors">
-          {p.name}
-        </button>
-      ))}
-      {custom.map((p, i) => (
-        <div key={i} className="flex items-center gap-0.5 group shrink-0">
-          <button onClick={() => apply(p.filters)}
-            className="px-3 py-1 text-xs rounded-full border border-white/[0.18] text-white/60 hover:bg-white/[0.06] whitespace-nowrap transition-colors">
+    <div className="thin-scroll -mx-4 flex items-center gap-2 overflow-x-auto px-4 pb-1">
+      <span className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">Presets</span>
+      {BUILT_IN_PRESETS.map((p) => {
+        const on = presetMatches(p.filters, currentFilters);
+        return (
+          <button key={p.name} onClick={() => toggle(p.filters, on)} aria-pressed={on} className={`${chip} ${on ? chipActive : chipIdle}`}>
             {p.name}
           </button>
-          <button onClick={() => deletePreset(i)}
-            className="opacity-0 group-hover:opacity-100 text-white/25 hover:text-red-400 text-xs px-1 transition-all">
-            ×
-          </button>
-        </div>
-      ))}
+        );
+      })}
+      {custom.map((p, i) => {
+        const on = presetMatches(p.filters, currentFilters);
+        return (
+          <span key={`${p.name}-${i}`} className="group flex shrink-0 items-center">
+            <button onClick={() => toggle(p.filters, on)} aria-pressed={on} className={`${chip} ${on ? chipActive : chipIdle} border-dashed`}>
+              {p.name}
+            </button>
+            <button
+              onClick={() => update(custom.filter((_, idx) => idx !== i))}
+              aria-label={`Delete preset ${p.name}`}
+              className="px-1.5 text-xs text-slate-500 opacity-60 hover:text-red-400 group-hover:opacity-100"
+            >
+              ✕
+            </button>
+          </span>
+        );
+      })}
       {saving ? (
-        <div className="flex items-center gap-1 shrink-0">
-          <input autoFocus value={name} onChange={(e) => setName(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && savePreset()}
-            placeholder="Name…"
-            className="px-2.5 py-1 text-xs bg-white/[0.06] border border-white/[0.1] text-white/80 placeholder-white/25 rounded-lg w-24 focus:outline-none focus:ring-1 focus:ring-white/20" />
-          <button onClick={savePreset}
-            className="px-2.5 py-1 text-xs bg-white/[0.1] border border-white/[0.12] text-white/80 rounded-lg hover:bg-white/[0.15] transition-colors">
-            Save
-          </button>
-          <button onClick={() => setSaving(false)}
-            className="px-2 py-1 text-xs text-white/30 hover:text-white/50 transition-colors">
-            ✕
-          </button>
-        </div>
+        <form className="flex shrink-0 items-center gap-1" onSubmit={(e) => { e.preventDefault(); save(); }}>
+          <input
+            autoFocus
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onKeyDown={(e) => e.key === "Escape" && setSaving(false)}
+            placeholder="Preset name"
+            aria-label="Preset name"
+            maxLength={24}
+            className="h-7 w-28 rounded-lg border border-white/10 bg-white/[0.06] px-2.5 text-xs text-slate-100 placeholder:text-slate-500 focus:border-emerald-400/50 focus:outline-none"
+          />
+          <button type="submit" className="h-7 rounded-lg bg-white/10 px-2.5 text-xs text-white hover:bg-white/15">Save</button>
+          <button type="button" onClick={() => setSaving(false)} className="h-7 px-2 text-xs text-slate-400 hover:text-white">Cancel</button>
+        </form>
       ) : (
-        <button onClick={() => setSaving(true)}
-          className="px-3 py-1 text-xs text-white/25 hover:text-white/50 whitespace-nowrap transition-colors shrink-0">
-          + Save
+        <button onClick={() => setSaving(true)} className="shrink-0 whitespace-nowrap px-2 text-xs text-slate-400 hover:text-white">
+          + Save current
         </button>
       )}
     </div>

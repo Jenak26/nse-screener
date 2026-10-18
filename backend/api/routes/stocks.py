@@ -29,12 +29,13 @@ def list_stocks(
     sort_dir: str = Query("desc"),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
+    q: Optional[str] = Query(None, max_length=50),
     session: Session = Depends(get_session),
 ):
     stocks, total = get_stocks(
         session, sector, pe_min, pe_max, roe_min,
         debt_max, revenue_growth_min, promoter_min,
-        sort_by, sort_dir, page, page_size,
+        sort_by, sort_dir, page, page_size, q_text=q,
     )
     return StocksResponse(
         stocks=stocks,

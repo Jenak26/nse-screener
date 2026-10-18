@@ -31,9 +31,17 @@ def _fetch_one(symbol: str) -> Optional[dict]:
 
         mc = info.get("marketCap")
         roe_raw = info.get("returnOnEquity")
+        if roe_raw is None:
+            # Yahoo omits returnOnEquity for many NSE listings; EPS / book value per share
+            # is the same ratio on a per-share basis (within ~2pp of Yahoo's figure).
+            eps, bvps = info.get("trailingEps"), info.get("bookValue")
+            if eps is not None and bvps:
+                roe_raw = eps / bvps
         # Yahoo's insider stake for NSE listings tracks the promoter group's holding;
         # used when NSE's shareholding file is unavailable.
         insiders = info.get("heldPercentInsiders")
+        # Yahoo reports debt/equity as a percentage (50.0 == 0.5x); store it as a ratio.
+        de_raw = info.get("debtToEquity")
 
         return {
             "symbol": symbol,
@@ -42,7 +50,7 @@ def _fetch_one(symbol: str) -> Optional[dict]:
             "market_cap": round(mc / 1e7, 2) if mc else None,
             "pe_ratio": info.get("trailingPE"),
             "roe": round(roe_raw * 100, 2) if roe_raw is not None else None,
-            "debt_to_equity": info.get("debtToEquity"),
+            "debt_to_equity": round(de_raw / 100, 3) if de_raw is not None else None,
             "revenue_growth_yoy": rev_growth,
             "promoter_holding": round(insiders * 100, 2) if insiders is not None else None,
             "current_ratio": info.get("currentRatio"),

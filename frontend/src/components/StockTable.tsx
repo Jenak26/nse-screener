@@ -5,64 +5,80 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import type { Stock } from "../types/stock";
+import { fmt, fmtCap, fmtPrice } from "../lib/format";
+
+declare module "@tanstack/react-table" {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  interface ColumnMeta<TData, TValue> {
+    numeric?: boolean;
+    className?: string;
+  }
+}
 
 const col = createColumnHelper<Stock>();
 
-const dash = <span className="text-white/20">—</span>;
+const dash = <span className="text-slate-600">—</span>;
 
-function fmt(v: number | null | undefined, d = 1) {
-  return v != null ? v.toFixed(d) : dash;
-}
-
-function pctCell(v: number | null | undefined) {
+function signed(v: number | null | undefined) {
   if (v == null) return dash;
-  const cls = v > 0 ? "text-emerald-400" : v < 0 ? "text-red-400" : "text-white/30";
-  return <span className={cls}>{v.toFixed(1)}%</span>;
+  const cls = v > 0 ? "text-emerald-400" : v < 0 ? "text-rose-400" : "text-slate-400";
+  return <span className={cls}>{v > 0 ? "+" : ""}{v.toFixed(1)}%</span>;
 }
 
-function capCell(v: number | null | undefined) {
-  if (v == null) return dash;
-  if (v >= 100_000) return `₹${(v / 100_000).toFixed(1)}L Cr`;
-  if (v >= 1_000) return `₹${(v / 1_000).toFixed(1)}K Cr`;
-  return `₹${v.toFixed(0)} Cr`;
-}
+const plain = (v: string | null, cls = "text-slate-200") => (v == null ? dash : <span className={cls}>{v}</span>);
 
 const COLUMNS = [
   col.accessor("symbol", {
-    header: "Symbol",
-    cell: (i) => <span className="font-semibold text-white/90 text-sm">{i.getValue()}</span>,
-  }),
-  col.accessor("company_name", {
-    header: "Company",
+    header: "Stock",
     cell: (i) => (
-      <span className="text-white/50 text-sm truncate max-w-[150px] block" title={i.getValue() ?? ""}>
-        {i.getValue() ?? dash}
-      </span>
+      <div className="min-w-0 max-w-[220px]">
+        <div className="font-semibold text-white">{i.getValue()}</div>
+        <div className="truncate text-xs text-slate-400" title={i.row.original.company_name ?? ""}>
+          {i.row.original.company_name}
+        </div>
+      </div>
     ),
   }),
   col.accessor("sector", {
     header: "Sector",
+    meta: { className: "hidden 2xl:table-cell" },
     cell: (i) =>
       i.getValue() ? (
-        <span className="px-2 py-0.5 text-xs rounded-full bg-white/[0.07] text-white/45 border border-white/[0.07] whitespace-nowrap">
+        <span className="whitespace-nowrap rounded-full border border-white/[0.08] bg-white/[0.04] px-2 py-0.5 text-xs text-slate-300">
           {i.getValue()}
         </span>
       ) : dash,
   }),
-  col.accessor("price", {
-    header: "Price",
-    cell: (i) => i.getValue() != null ? <span className="text-white/80 text-sm">₹{i.getValue()!.toFixed(2)}</span> : dash,
-  }),
-  col.accessor("pe_ratio", { header: "P/E", cell: (i) => <span className="text-white/70 text-sm">{fmt(i.getValue())}</span> }),
-  col.accessor("roe", { header: "ROE", cell: (i) => pctCell(i.getValue()) }),
-  col.accessor("debt_to_equity", { header: "D/E", cell: (i) => <span className="text-white/70 text-sm">{fmt(i.getValue(), 2)}</span> }),
-  col.accessor("revenue_growth_yoy", { header: "Rev Growth", cell: (i) => pctCell(i.getValue()) }),
+  col.accessor("price", { header: "Price", meta: { numeric: true }, cell: (i) => plain(fmtPrice(i.getValue())) }),
+  col.accessor("market_cap", { header: "Mkt cap", meta: { numeric: true }, cell: (i) => plain(fmtCap(i.getValue()), "text-slate-300") }),
+  col.accessor("pe_ratio", { header: "P/E", meta: { numeric: true }, cell: (i) => plain(fmt(i.getValue())) }),
+  col.accessor("roe", { header: "ROE", meta: { numeric: true }, cell: (i) => signed(i.getValue()) }),
+  col.accessor("debt_to_equity", { header: "D/E", meta: { numeric: true }, cell: (i) => plain(fmt(i.getValue(), 2)) }),
+  col.accessor("revenue_growth_yoy", { header: "Rev growth", meta: { numeric: true }, cell: (i) => signed(i.getValue()) }),
   col.accessor("promoter_holding", {
     header: "Promoter",
-    cell: (i) => (i.getValue() != null ? <span className="text-white/70 text-sm">{i.getValue()!.toFixed(1)}%</span> : dash),
+    meta: { numeric: true },
+    cell: (i) => plain(i.getValue() != null ? `${i.getValue()!.toFixed(1)}%` : null),
   }),
-  col.accessor("market_cap", { header: "Mkt Cap", cell: (i) => <span className="text-white/60 text-sm">{capCell(i.getValue())}</span> }),
 ];
+
+const HEADER_TITLES: Record<string, string> = {
+  pe_ratio: "Price to earnings (trailing)",
+  roe: "Return on equity",
+  debt_to_equity: "Debt to equity (×)",
+  revenue_growth_yoy: "Revenue growth, year on year",
+  promoter_holding: "Promoter group holding",
+  market_cap: "Market capitalisation",
+};
+
+function SortIcon({ state }: { state: "asc" | "desc" | null }) {
+  return (
+    <svg viewBox="0 0 10 14" aria-hidden className="h-3 w-2.5 shrink-0">
+      <path d="M5 1l4 5H1z" className={state === "asc" ? "fill-emerald-400" : "fill-slate-600"} />
+      <path d="M5 13l4-5H1z" className={state === "desc" ? "fill-emerald-400" : "fill-slate-600"} />
+    </svg>
+  );
+}
 
 interface Props {
   stocks: Stock[];
@@ -72,14 +88,16 @@ interface Props {
   sortBy: string;
   sortDir: "asc" | "desc";
   isLoading: boolean;
+  isFetching: boolean;
   onSort: (col: string) => void;
   onPage: (p: number) => void;
   onRowClick: (symbol: string) => void;
+  onClearFilters: () => void;
 }
 
 export function StockTable({
   stocks, total, page, pageSize, sortBy, sortDir,
-  isLoading, onSort, onPage, onRowClick,
+  isLoading, isFetching, onSort, onPage, onRowClick, onClearFilters,
 }: Props) {
   const table = useReactTable({
     data: stocks,
@@ -88,113 +106,127 @@ export function StockTable({
     manualSorting: true,
   });
 
-  const totalPages = Math.ceil(total / pageSize);
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const from = total === 0 ? 0 : (page - 1) * pageSize + 1;
+  const to = Math.min(page * pageSize, total);
+  const pages = Array.from({ length: Math.min(5, totalPages) }, (_, i) => Math.max(1, Math.min(page - 2, totalPages - 4)) + i);
+
+  const pageBtn = "num h-8 min-w-8 rounded-lg border px-2.5 text-xs transition-colors disabled:pointer-events-none disabled:opacity-30";
 
   return (
     <div className="space-y-3">
-      <p className="text-[11px] text-white/25 px-1 font-medium tracking-wide">
-        {isLoading ? "Loading…" : `${total.toLocaleString()} stocks`}
-      </p>
-
-      <div className="bg-[rgba(28,28,30,0.72)] backdrop-blur-2xl border border-white/[0.08] rounded-2xl overflow-hidden shadow-[0_4px_24px_rgba(0,0,0,0.25)]">
-        <div className="overflow-x-auto">
+      <div className={`panel overflow-hidden transition-opacity ${isFetching && !isLoading ? "opacity-70" : ""}`}>
+        <div className="thin-scroll overflow-auto lg:max-h-[calc(100vh-230px)]">
           <table className="w-full text-sm">
-            <thead>
+            <caption className="sr-only">NIFTY 500 stocks matching the current filters. Select a row for details.</caption>
+            <thead className="sticky top-0 z-10 bg-[#111827]">
               {table.getHeaderGroups().map((hg) => (
-                <tr key={hg.id} className="border-b border-white/[0.07]">
-                  {hg.headers.map((h) => (
-                    <th
-                      key={h.id}
-                      onClick={() => onSort(h.column.id)}
-                      className="px-4 py-3 text-left text-[10px] font-semibold text-white/25 uppercase tracking-[1.5px] cursor-pointer hover:text-white/50 select-none whitespace-nowrap transition-colors"
-                    >
-                      {flexRender(h.column.columnDef.header, h.getContext())}
-                      {sortBy === h.column.id && (
-                        <span className="ml-1 text-white/50">
-                          {sortDir === "desc" ? "↓" : "↑"}
-                        </span>
-                      )}
-                    </th>
-                  ))}
+                <tr key={hg.id} className="border-b border-white/[0.08]">
+                  {hg.headers.map((h) => {
+                    const id = h.column.id;
+                    const active = sortBy === id ? sortDir : null;
+                    const meta = h.column.columnDef.meta;
+                    return (
+                      <th
+                        key={h.id}
+                        scope="col"
+                        aria-sort={active === "asc" ? "ascending" : active === "desc" ? "descending" : "none"}
+                        className={`px-3 py-2.5 font-normal first:pl-4 last:pr-4 ${meta?.className ?? ""}`}
+                      >
+                        <button
+                          onClick={() => onSort(id)}
+                          title={HEADER_TITLES[id]}
+                          className={`inline-flex w-full items-center gap-1.5 whitespace-nowrap text-[11px] font-semibold uppercase tracking-[0.1em] transition-colors ${
+                            meta?.numeric ? "justify-end" : ""
+                          } ${active ? "text-emerald-300" : "text-slate-400 hover:text-slate-200"}`}
+                        >
+                          {flexRender(h.column.columnDef.header, h.getContext())}
+                          <SortIcon state={active} />
+                        </button>
+                      </th>
+                    );
+                  })}
                 </tr>
               ))}
             </thead>
             <tbody>
-              {isLoading
-                ? Array.from({ length: 8 }).map((_, i) => (
-                    <tr key={i} className="border-b border-white/[0.05]">
-                      {COLUMNS.map((_, j) => (
-                        <td key={j} className="px-4 py-3">
-                          <div className="h-3.5 bg-white/[0.06] rounded animate-pulse" />
-                        </td>
-                      ))}
-                    </tr>
-                  ))
-                : stocks.length === 0
-                ? (
-                  <tr>
-                    <td colSpan={COLUMNS.length} className="px-4 py-16 text-center text-white/25 text-sm">
-                      No stocks match your filters
-                    </td>
+              {isLoading ? (
+                Array.from({ length: 10 }).map((_, i) => (
+                  <tr key={i} className="border-b border-white/[0.05]">
+                    {COLUMNS.map((c, j) => (
+                      <td key={j} className={`px-4 py-3.5 ${c.meta?.className ?? ""}`}>
+                        <div className={`h-3.5 animate-pulse rounded bg-white/[0.07] ${j === 0 ? "w-24" : "ml-auto w-14"}`} />
+                      </td>
+                    ))}
                   </tr>
-                )
-                : table.getRowModel().rows.map((row) => (
-                    <tr
-                      key={row.id}
-                      onClick={() => onRowClick(row.original.symbol)}
-                      className="border-b border-white/[0.05] hover:bg-white/[0.04] cursor-pointer transition-colors last:border-0"
-                    >
-                      {row.getVisibleCells().map((cell) => (
-                        <td key={cell.id} className="px-4 py-3 whitespace-nowrap">
+                ))
+              ) : stocks.length === 0 ? (
+                <tr>
+                  <td colSpan={COLUMNS.length} className="px-4 py-16 text-center">
+                    <p className="text-sm font-medium text-slate-200">No stocks match these filters</p>
+                    <p className="mt-1 text-xs text-slate-400">Try loosening a threshold or clearing the search.</p>
+                    <button onClick={onClearFilters} className="mt-4 rounded-lg border border-white/15 px-3 py-1.5 text-xs text-slate-200 hover:bg-white/[0.06]">
+                      Clear all filters
+                    </button>
+                  </td>
+                </tr>
+              ) : (
+                table.getRowModel().rows.map((row) => (
+                  <tr
+                    key={row.id}
+                    tabIndex={0}
+                    onClick={() => onRowClick(row.original.symbol)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        onRowClick(row.original.symbol);
+                      }
+                    }}
+                    aria-label={`${row.original.symbol}, ${row.original.company_name ?? ""}. Open details`}
+                    className="cursor-pointer border-b border-white/[0.05] transition-colors last:border-0 hover:bg-white/[0.04] focus-visible:bg-white/[0.06] focus-visible:outline-none"
+                  >
+                    {row.getVisibleCells().map((cell) => {
+                      const meta = cell.column.columnDef.meta;
+                      return (
+                        <td key={cell.id} className={`px-3 py-2.5 first:pl-4 last:pr-4 ${meta?.numeric ? "num whitespace-nowrap text-right" : ""} ${meta?.className ?? ""}`}>
                           {flexRender(cell.column.columnDef.cell, cell.getContext())}
                         </td>
-                      ))}
-                    </tr>
-                  ))}
+                      );
+                    })}
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
       </div>
 
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between px-1 pt-1">
-          <p className="text-[11px] text-white/25">
-            Page {page} of {totalPages}
+      {total > 0 && (
+        <nav aria-label="Pagination" className="flex flex-wrap items-center justify-between gap-3 px-1">
+          <p className="num text-xs text-slate-400">
+            Showing <span className="text-slate-200">{from}–{to}</span> of <span className="text-slate-200">{total.toLocaleString()}</span>
           </p>
-          <div className="flex gap-1">
-            <button
-              onClick={() => onPage(page - 1)}
-              disabled={page === 1}
-              className="px-3 py-1.5 text-xs rounded-lg border border-white/[0.1] bg-white/[0.04] text-white/50 disabled:opacity-25 hover:bg-white/[0.08] transition-colors"
-            >
-              ←
-            </button>
-            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-              const p = Math.max(1, Math.min(page - 2, totalPages - 4)) + i;
-              if (p < 1 || p > totalPages) return null;
-              return (
+          {totalPages > 1 && (
+            <div className="flex gap-1">
+              <button onClick={() => onPage(page - 1)} disabled={page === 1} aria-label="Previous page" className={`${pageBtn} border-white/10 text-slate-300 hover:bg-white/[0.06]`}>
+                ‹
+              </button>
+              {pages.map((p) => (
                 <button
                   key={p}
                   onClick={() => onPage(p)}
-                  className={`px-3 py-1.5 text-xs rounded-lg border transition-colors ${
-                    p === page
-                      ? "bg-white/[0.14] text-white border-white/[0.15]"
-                      : "border-white/[0.1] bg-white/[0.04] text-white/50 hover:bg-white/[0.08]"
-                  }`}
+                  aria-current={p === page ? "page" : undefined}
+                  className={`${pageBtn} ${p === page ? "border-emerald-400/40 bg-emerald-400/15 text-emerald-200" : "border-white/10 text-slate-300 hover:bg-white/[0.06]"}`}
                 >
                   {p}
                 </button>
-              );
-            })}
-            <button
-              onClick={() => onPage(page + 1)}
-              disabled={page === totalPages}
-              className="px-3 py-1.5 text-xs rounded-lg border border-white/[0.1] bg-white/[0.04] text-white/50 disabled:opacity-25 hover:bg-white/[0.08] transition-colors"
-            >
-              →
-            </button>
-          </div>
-        </div>
+              ))}
+              <button onClick={() => onPage(page + 1)} disabled={page === totalPages} aria-label="Next page" className={`${pageBtn} border-white/10 text-slate-300 hover:bg-white/[0.06]`}>
+                ›
+              </button>
+            </div>
+          )}
+        </nav>
       )}
     </div>
   );
