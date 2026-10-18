@@ -36,5 +36,7 @@ jobs:
             echo "No data changes"
           else
             git commit -m "data: refresh NIFTY 500 snapshot $(date -u +%F)"
+            # A commit may land on master while the ~10 min fetch runs; replay on top of it.
+            git pull --rebase
             git push
           fi
